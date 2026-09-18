@@ -1,1 +1,1 @@
-SOURCES = main.cpp
+SOURCES = main.cpp interpreter.cpp cpu.cpp

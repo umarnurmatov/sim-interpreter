@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
+
+#include "instr.hpp"
 
 using Reg = std::uint32_t;
 
@@ -18,3 +21,14 @@ struct CpuState
   Memory mem;
 };
 
+class Cpu
+{  
+public:
+  Cpu();
+  Instr decode(Word &enc);
+  void  exec  (Instr &inst);
+
+private:
+  CpuState                        m_cpu;
+  std::unordered_map<Word, Instr> m_cache;
+};
