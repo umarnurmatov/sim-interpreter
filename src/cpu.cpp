@@ -4,41 +4,15 @@
 
 static Opcode get_opcode(Word &enc);
 
-static Opcode get_opcode(Word &enc)
+Cpu::Cpu()
 {
-  std::uint8_t opcode_lsb = static_cast<std::uint8_t>(enc & 0x3f);
-  std::uint8_t opcode_msb = static_cast<std::uint8_t>(enc >> 26);
-  Opcode op{};
-
-  if (opcode_lsb && !opcode_msb) {
-    switch (opcode_lsb) {
-      case OPCODE_BDEP:    op = Opcode::kBdep;
-      case OPCODE_NOR:     op = Opcode::kNor;
-      case OPCODE_CLS:     op = Opcode::kCls;
-      case OPCODE_SYSCALL: op = Opcode::kSyscall;
-      case OPCODE_ADD:     op = Opcode::kAdd;
-      default:             op = Opcode::kUnknown;
-    }
-  }
-  else {
-    switch (opcode_msb) {
-      case OPCODE_SSAT:    op = Opcode::kSsat;
-      case OPCODE_BEQ:     op = Opcode::kBeq;
-      case OPCODE_LD:      op = Opcode::kLd;
-      case OPCODE_CBIT:    op = Opcode::kCbit;
-      case OPCODE_J:       op = Opcode::kJ;
-      case OPCODE_ADDI:    op = Opcode::kAddi;
-      case OPCODE_JALR:    op = Opcode::kJalr;
-      case OPCODE_ST:      op = Opcode::kSt;
-      case OPCODE_STP:     op = Opcode::kStp;
-      case OPCODE_LI:      op = Opcode::kLi;
-      default:             op = Opcode::kUnknown;
-    }
-  }
-
-  return op;
+  m_cpu = new CpuState;
 }
 
+Cpu::~Cpu()
+{
+  delete m_cpu;
+}
 
 #define GET_SRC1(enc)   (static_cast<Byte>(((enc) >> 16) & 0x1f     ))
 #define GET_SRC2(enc)   (static_cast<Byte>(((enc) >> 11) & 0x1f     ))
@@ -55,7 +29,7 @@ static Opcode get_opcode(Word &enc)
 #define GET_CODE(enc)   (static_cast<Word>(((enc) >>  6) & 0xfffff  ))
 
 
-Instr Interpreter::decode(Word &enc)
+Instr Cpu::decode(Word &enc)
 {
   Instr inst { .opc = get_opcode(enc) };
 
@@ -147,3 +121,68 @@ Instr Interpreter::decode(Word &enc)
 #undef GET_BASE
 #undef GET_IIND
 #undef GET_CODE
+
+void Cpu::exec(Instr &inst)
+{
+  Reg res{};
+  switch (inst.opc) {
+    case Opcode::kBdep:
+    case Opcode::kNor:
+      res = m_cpu->get_reg(inst.get_src1()) +
+            m_cpu->get_reg(inst.get_src2());
+      m_cpu->set_reg(inst.get_dst(), res);
+      break;
+    case Opcode::kCls:
+    case Opcode::kSyscall:
+    case Opcode::kAdd:
+    case Opcode::kSsat:
+    case Opcode::kBeq:
+    case Opcode::kLd:
+    case Opcode::kCbit:
+    case Opcode::kJ:
+    case Opcode::kAddi:
+    case Opcode::kJalr:
+    case Opcode::kSt:
+    case Opcode::kStp:
+    case Opcode::kLi:
+    default:
+      break;
+  }
+}
+
+static Opcode get_opcode(Word &enc)
+{
+  std::uint8_t opcode_lsb = static_cast<std::uint8_t>(enc & 0x3f);
+  std::uint8_t opcode_msb = static_cast<std::uint8_t>(enc >> 26);
+  Opcode op{};
+
+  if (opcode_lsb && !opcode_msb) {
+    switch (opcode_lsb) {
+      case OPCODE_BDEP:    op = Opcode::kBdep;
+      case OPCODE_NOR:     op = Opcode::kNor;
+      case OPCODE_CLS:     op = Opcode::kCls;
+      case OPCODE_SYSCALL: op = Opcode::kSyscall;
+      case OPCODE_ADD:     op = Opcode::kAdd;
+      default:             op = Opcode::kUnknown;
+    }
+  }
+  else {
+    switch (opcode_msb) {
+      case OPCODE_SSAT:    op = Opcode::kSsat;
+      case OPCODE_BEQ:     op = Opcode::kBeq;
+      case OPCODE_LD:      op = Opcode::kLd;
+      case OPCODE_CBIT:    op = Opcode::kCbit;
+      case OPCODE_J:       op = Opcode::kJ;
+      case OPCODE_ADDI:    op = Opcode::kAddi;
+      case OPCODE_JALR:    op = Opcode::kJalr;
+      case OPCODE_ST:      op = Opcode::kSt;
+      case OPCODE_STP:     op = Opcode::kStp;
+      case OPCODE_LI:      op = Opcode::kLi;
+      default:             op = Opcode::kUnknown;
+    }
+  }
+
+  return op;
+}
+
+
