@@ -6,7 +6,7 @@ static Opcode get_opcode(Word &enc);
 
 Cpu::Cpu()
 {
-  m_cpu = new CpuState;
+  m_cpu = new CpuState {};
 }
 
 Cpu::~Cpu()
@@ -124,15 +124,21 @@ Instr Cpu::decode(Word &enc)
 
 void Cpu::exec(Instr &inst)
 {
-  Reg res{};
+  Reg res{}, dst{}, src1{}, src2{};
   switch (inst.opc) {
     case Opcode::kBdep:
-    case Opcode::kNor:
+    case Opcode::kNor: {
       res = m_cpu->get_reg(inst.get_src1()) +
             m_cpu->get_reg(inst.get_src2());
       m_cpu->set_reg(inst.get_dst(), res);
       break;
-    case Opcode::kCls:
+    }
+    case Opcode::kCls: {
+      src1 = m_cpu->get_reg(inst.get_src1());
+      std::size_t ones_cnt = 0;
+      // TODO
+      break;
+    }
     case Opcode::kSyscall:
     case Opcode::kAdd:
     case Opcode::kSsat:

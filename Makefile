@@ -42,7 +42,7 @@ CPPFLAGS_WARNINGS = -Wall -Wextra -Werror=vla
 CPPFLAGS_DEFINES = $(addprefix -D,$(DEFINE))
 
 # because CFLAGS could be origined as external environment variable
-override CFLAGS += -std=c++17 $(addprefix -I,$(INCLUDE_DIRS_ALL)) $(CPPFLAGS_WARNINGS) $(CPPFLAGS_DEFINES) $(CPPFLAGS_TARGET)
+override CFLAGS += -std=c++20 $(addprefix -I,$(INCLUDE_DIRS_ALL)) $(CPPFLAGS_WARNINGS) $(CPPFLAGS_DEFINES) $(CPPFLAGS_TARGET)
 
 # targets which do not require dependencies
 NODEPS = clean

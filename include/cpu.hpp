@@ -1,17 +1,10 @@
 #pragma once
-#include <vector>
+
 #include <cstdint>
 
+#include "isa.hpp"
+#include "memory.hpp"
 #include "instr.hpp"
-
-using Reg = std::uint32_t;
-
-constexpr std::size_t kNumRegs = 32;
-
-struct Memory
-{
-  std::vector<std::uint8_t> ram;
-};
 
 struct CpuState
 {

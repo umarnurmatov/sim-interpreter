@@ -1,8 +1,8 @@
 #pragma once
+
 #include <cstdint>
 
-using Word = std::uint32_t;
-using Byte = std::uint8_t;
+#include "isa.hpp"
 
 enum class Opcode : std::uint8_t
 {
