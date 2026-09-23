@@ -1,11 +1,17 @@
 #include "cpu.hpp"
+
 #include <algorithm>
+#include <bit>
 #include <stdexcept>
 
-static Opcode get_opcode(Word &enc);
+#include "immintrin.h"
+
+static Opcode get_opcode(Word enc);
 static std::size_t cnt_lead_ones(Reg rg);
 static Reg sgn_satr(Reg rg, Word n);
 static SignedWord sgn_extend(Word wd, Word bitw);
+static void clr_bit(Word &wd, std::uint8_t pos);
+static Reg bit_deposit(Reg rg, Reg mask);
 
 Cpu::Cpu()
 {
@@ -116,70 +122,155 @@ Instr Cpu::decode(Word enc)
 
 void Cpu::exec(Instr inst)
 {
-  Reg res{}, dst{}, src1{}, src2{};
-  Word imm;
+
   switch (inst.opc) {
     case Opcode::kBdep:
+      m_cpu->set_reg(
+        inst.f3, 
+        bit_deposit(
+          m_cpu->get_reg(inst.f1), 
+          m_cpu->get_reg(inst.f2))
+      );
       break;
+
     case Opcode::kNor: {
-      res = ~(m_cpu->get_reg(inst.f2) 
-              | m_cpu->get_reg(inst.f3));
+      Reg res = ~(m_cpu->get_reg(inst.f2) 
+                  | m_cpu->get_reg(inst.f3));
       m_cpu->set_reg(inst.f1, res);
       break;
     }
+
     case Opcode::kCls: {
-      src1 = m_cpu->get_reg(inst.f1);
-      std::size_t ones_cnt = cnt_lead_ones(src1);
+      Reg src = m_cpu->get_reg(inst.f1);
+      std::size_t ones_cnt = cnt_lead_ones(src);
       m_cpu->set_reg(inst.f2, ones_cnt);
       break;
     }
+
     case Opcode::kSyscall:
       break;
+      
     case Opcode::kAdd: {
-      res = m_cpu->get_reg(inst.f2) +
-            m_cpu->get_reg(inst.f3);
+      Reg res = m_cpu->get_reg(inst.f2) +
+                m_cpu->get_reg(inst.f3);
       m_cpu->set_reg(inst.f1, res);
       break;
     }
+
     case Opcode::kSsat: {
-      src1 = m_cpu->get_reg(inst.f1); 
-      Reg sgn_satred = sgn_satr(src1, inst.f3);
+      Reg src = m_cpu->get_reg(inst.f1); 
+      Reg sgn_satred = sgn_satr(src, inst.f3);
       m_cpu->set_reg(inst.f2, sgn_satred);
     }
+
     case Opcode::kBeq: {
+      // FIXME
       SignedWord ofst = sgn_extend(
-        inst.f3,
-        kInstrEnc[OPC_TO_INT(Opcode::kBeq)].f3.width) 
-        << 2;
+        inst.f3 << 2,
+        kInstrEnc[OPC_TO_INT(Opcode::kBeq)].f3.width + 2);
 
       Reg src   = m_cpu->get_reg(inst.f2),
           targt = m_cpu->get_reg(inst.f1);
-      m_cpu->increment_pc(src == targt ? ofst : 4);
+      m_cpu->increment_pc(src == targt ? ofst : sizeof(Word));
     }
-    case Opcode::kLd:
+
+    case Opcode::kLd: {
+      SignedWord ofst = sgn_extend(
+        inst.f3,
+        kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
+
+      Word addr = std::bit_cast<Word>(
+        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2)) 
+        + ofst);
+
+      m_cpu->set_reg(inst.f1, m_cpu->mem().load<Word>(addr));
       break;
-    case Opcode::kCbit:
+    }
+
+    case Opcode::kCbit: {
+      Reg src = m_cpu->get_reg(inst.f2);
+      clr_bit(src, inst.f3);
+      m_cpu->set_reg(inst.f1, src);
       break;
-    case Opcode::kJ:
+    }
+
+    case Opcode::kJ: {
+      m_cpu->increment_pc(
+        (m_cpu->pc() & 0xf0000000) | (inst.f3 << 2));
       break;
-    case Opcode::kAddi:
+    }
+
+    case Opcode::kAddi: {
+      SignedWord imm = sgn_extend(
+        inst.f3,
+        kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
       break;
-    case Opcode::kJalr:
+
+      Reg res = std::bit_cast<Reg>(
+        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2))
+        + imm
+      );
+      m_cpu->set_reg(inst.f1, res);
+    }
+
+    case Opcode::kJalr: {
+      Reg link = m_cpu->pc() + sizeof(Word);
+      SignedWord imm = sgn_extend(
+        inst.f3,
+        kInstrEnc[OPC_TO_INT(Opcode::kJalr)].f3.width);
+      Reg src = m_cpu->get_reg(inst.f2);
+      m_cpu->set_pc((src + imm) & 0xfffffffe);
+      m_cpu->set_reg(inst.f1, link);
       break;
-    case Opcode::kSt:
+    }
+     
+    case Opcode::kSt: {
+      SignedWord ofst = sgn_extend(
+        inst.f3,
+        kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
+
+      Word addr = std::bit_cast<Word>(
+        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2)) 
+        + ofst);
+
+      m_cpu->mem().store(addr, m_cpu->get_reg(inst.f1));
       break;
-    case Opcode::kStp:
+    }
+       
+    case Opcode::kStp: {
+      auto f4_width = kInstrEnc[OPC_TO_INT(Opcode::kStp)].f4.width;
+
+      Word base = inst.f3 >> f4_width;
+      Word ofst = inst.f3 & ((1u << f4_width) - 1);
+
+      SignedWord ofst_ext = sgn_extend(ofst, f4_width);
+
+      Word addr = std::bit_cast<Word>(
+        std::bit_cast<SignedWord>(m_cpu->get_reg(base)) 
+        + ofst_ext);
+
+      m_cpu->mem().store(addr               , m_cpu->get_reg(inst.f1));
+      m_cpu->mem().store(addr + sizeof(Word), m_cpu->get_reg(inst.f2));
       break;
-    case Opcode::kLi:
+    }
+       
+    case Opcode::kLi: {
+      SignedWord imm = sgn_extend(
+        inst.f3,
+        kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
+      m_cpu->set_reg(inst.f1, std::bit_cast<Reg>(imm));
       break;
+    }
+       
     default:
+      throw std::runtime_error("exec: unknown instr");
       break;
   }
 }
 
 #undef OPC_TO_INT
 
-static Opcode get_opcode(Word &enc)
+static Opcode get_opcode(Word enc)
 {
   std::uint8_t opcode_lsb = static_cast<std::uint8_t>(enc & 0x3f);
   std::uint8_t opcode_msb = static_cast<std::uint8_t>(enc >> 26);
@@ -197,17 +288,17 @@ static Opcode get_opcode(Word &enc)
   }
   else {
     switch (opcode_msb) {
-      case kOpcodeSsat: op = Opcode::kSsat; break;
-      case kOpcodeBeq:  op = Opcode::kBeq;  break;
-      case kOpcodeLd:   op = Opcode::kLd;   break;
-      case kOpcodeCbit: op = Opcode::kCbit; break;
-      case kOpcodeJ:    op = Opcode::kJ;    break;
-      case kOpcodeAddi: op = Opcode::kAddi; break;
-      case kOpcodeJalr: op = Opcode::kJalr; break;
-      case kOpcodeSt:   op = Opcode::kSt;   break;
-      case kOpcodeStp:  op = Opcode::kStp;  break;
-      case kOpcodeLi:   op = Opcode::kLi;   break;
-      default:          op = Opcode::kUnknown; break;
+      case kOpcodeSsat:    op = Opcode::kSsat;    break;
+      case kOpcodeBeq:     op = Opcode::kBeq;     break;
+      case kOpcodeLd:      op = Opcode::kLd;      break;
+      case kOpcodeCbit:    op = Opcode::kCbit;    break;
+      case kOpcodeJ:       op = Opcode::kJ;       break;
+      case kOpcodeAddi:    op = Opcode::kAddi;    break;
+      case kOpcodeJalr:    op = Opcode::kJalr;    break;
+      case kOpcodeSt:      op = Opcode::kSt;      break;
+      case kOpcodeStp:     op = Opcode::kStp;     break;
+      case kOpcodeLi:      op = Opcode::kLi;      break;
+      default:             op = Opcode::kUnknown; break;
     }
   }
 
@@ -240,5 +331,26 @@ static Reg sgn_satr(Reg rg, Word n)
 static SignedWord sgn_extend(Word wd, Word bitw)
 {
   const Word m = 1u << (bitw - 1);   
-  return static_cast<SignedWord>((wd ^ m) - m);
+  return std::bit_cast<SignedWord>((wd ^ m) - m);
+}
+
+static void clr_bit(Word &wd, std::uint8_t pos)
+{
+  wd &= ~(1u << pos);
+}
+
+static Reg bit_deposit(Reg rg, Reg mask)
+{
+  if (__builtin_cpu_supports("bmi2")) {
+    return _pdep_u32(rg, mask);
+  }
+
+  Reg res {};
+  for (std::uint32_t bit = 1; mask; bit <<= 1) {
+      std::uint32_t mask_lsb = mask & -mask;
+      if (rg & bit)
+          res |= mask_lsb;
+      mask &= mask - 1;
+  }
+  return res; 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <cstdint>
 
 #include "isa.hpp"
@@ -8,22 +9,27 @@
 
 struct CpuState
 {
-  Reg    gpr[kNumRegs];
-  Reg    pc;
-  Memory mem;
+public:
+  void set_reg(std::size_t reg, Reg val) { m_gpr[reg] = val; }
 
-  void set_reg(std::size_t reg, Reg val)
-  {
-    gpr[reg] = val;
+  Reg get_reg(std::size_t reg) { return m_gpr[reg]; }
+
+  void increment_pc(SignedWord incr) { 
+    m_pc = std::bit_cast<Reg>(
+      std::bit_cast<SignedWord>(m_pc) 
+      + incr); 
   }
-  Reg get_reg(std::size_t reg)
-  {
-    return gpr[reg]; 
-  }
-  void increment_pc(SignedWord incr) 
-  {
-    pc += incr;
-  }
+
+  void set_pc(Reg pc_new) { m_pc = pc_new; }
+
+  Reg pc() { return m_pc; }
+
+  Memory& mem() { return m_mem; }
+
+private:
+  Reg    m_gpr[kNumRegs];
+  Reg    m_pc;
+  Memory m_mem;
 };
 
 class Cpu

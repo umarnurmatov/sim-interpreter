@@ -25,9 +25,9 @@ ifeq ($(origin CC), default)
 	CC = g++
 endif
 
-CPPFLAGS_DEBUG 	 = -D _DEBUG -ggdb3 -O0 -g
+CPPFLAGS_DEBUG 	 = -D _DEBUG -ggdb3 -O2 -g -march=native
 
-CPPFLAGS_RELEASE = -DNDEBUG -O2
+CPPFLAGS_RELEASE = -DNDEBUG -O2 -march=native
 
 CPPFLAGS_ASAN    = -fcheck-new -fsized-deallocation -fstack-protector -fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer -pie -fPIE -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 

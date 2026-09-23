@@ -8,7 +8,7 @@ using SignedWord = std::int32_t;
 using Byte       = std::uint8_t;
 using Reg        = std::uint32_t;
 
-constexpr std::size_t kRegWidth = 32;
+constexpr std::size_t kRegWidth  = sizeof(Reg) * 8;
 
 template <typename T>
 concept MemoryType =

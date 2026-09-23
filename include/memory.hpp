@@ -28,7 +28,17 @@ public:
 
 private:
   template <MemoryType T>
-  void check_bounds(std::size_t addr) const;
+  void check_bounds(std::size_t addr) const 
+  {
+    if (addr >= m_ram.size() || sizeof(T) > m_ram.size() - addr)
+      throw std::runtime_error("memory: access out of bounds");
+  }
+
+  void check_alignment(std::size_t addr) const 
+  {
+    if (addr % sizeof(Word) != 0)
+      throw std::runtime_error("memory: misaligned access");
+  }
 
   std::vector<std::uint8_t> m_ram;
 };
@@ -37,6 +47,7 @@ private:
 template <MemoryType T>
 T Memory::load(std::size_t addr) const
 {
+  check_alignment(addr);
   check_bounds<T>(addr);
 
   T value{};
@@ -48,13 +59,9 @@ T Memory::load(std::size_t addr) const
 template <MemoryType T>
 void Memory::store(std::size_t addr, T value)
 {
+  check_alignment(addr);
   check_bounds<T>(addr);
+
   std::memcpy(m_ram.data() + addr, &value, sizeof(T));
 }
 
-template <MemoryType T>
-void Memory::check_bounds(std::size_t addr) const
-{
-  if (addr > m_ram.size() || sizeof(T) > m_ram.size() - addr)
-    throw std::runtime_error("memory: access out of bounds");
-}
