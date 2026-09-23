@@ -20,14 +20,18 @@ struct CpuState
   {
     return gpr[reg]; 
   }
+  void increment_pc(SignedWord incr) 
+  {
+    pc += incr;
+  }
 };
 
 class Cpu
 {  
 public:
   Cpu();
-  Instr decode(Word &enc);
-  void  exec  (Instr &inst);
+  Instr decode(Word enc);
+  void  exec  (Instr inst);
   ~Cpu();
 
 private:
