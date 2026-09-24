@@ -10,6 +10,11 @@
 struct CpuState
 {
 public:
+  
+  CpuState()
+    : m_gpr {}, m_pc {0}
+  {}
+
   void set_reg(std::size_t reg, Reg val) { m_gpr[reg] = val; }
 
   Reg get_reg(std::size_t reg) { return m_gpr[reg]; }
@@ -27,7 +32,7 @@ public:
   Memory& mem() { return m_mem; }
 
 private:
-  Reg    m_gpr[kNumRegs];
+  Reg    m_gpr[Isa::kNumRegs];
   Reg    m_pc;
   Memory m_mem;
 };

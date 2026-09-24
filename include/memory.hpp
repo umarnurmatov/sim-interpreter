@@ -11,7 +11,7 @@ class Memory
 {
 public:
   Memory()
-    : Memory(kRamSize)
+    : Memory(Isa::kRamSize)
   {
   }
 

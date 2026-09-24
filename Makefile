@@ -4,7 +4,7 @@
 BUILD_DIR    ?= build
 SRC_DIR      = src
 INCLUDE_DIRS = include
-EXECUTABLE   = interpreter.o
+EXECUTABLE   = interpreter.x
 
 # includes SOURCES variable
 # do not use -include, because it ignores files that could not be found
@@ -62,7 +62,7 @@ $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 $(DEPS): $(BUILD_DIR)/%.d: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
-	# just running preprocessor to generate include-dependencies
+	@# just running preprocessor to generate include-dependencies
 	@$(CC) -E $(CFLAGS) $< -MM -MT $(@:.d=.o) > $@
 
 .PHONY: run

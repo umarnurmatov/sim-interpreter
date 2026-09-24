@@ -28,7 +28,6 @@ INSTR_ENCS = {
   syscall: {
     opcode: { val: 0b100011, width: 6, offst: 0 },
     operands: {
-      code: { width: 20, offst: 6, type: :numeric }
     }
   },
 
@@ -149,6 +148,12 @@ class Assembler
     define_method(mnemonic) { |*args|
       operands = fields[:operands].values
 
+      if operands.size != args.size
+        raise "#{mnemonic}: arg cnt mismatch"
+      end
+
+      puts "#{mnemonic} #{args.join(", ")}"
+
       cmd_bin = enc_field(
         fields[:opcode][:val],
         fields[:opcode][:width],
@@ -156,6 +161,7 @@ class Assembler
       )
 
       operands.zip(args).each do |op, val|
+        # FIXME: check for arg type
         if op[:type] == :register
           cmd_bin |= enc_field(
             @regs[val],
@@ -200,7 +206,6 @@ as = Assembler.new
 
 File.foreach(ARGV[0]) do |line|
   splitted = line.split(" ", 2)
-  puts splitted.inspect
   mnemonic, args = splitted[0].strip(), splitted[1].split(",")
 
   args.map! { |arg| arg.strip() }

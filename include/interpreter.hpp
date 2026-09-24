@@ -8,7 +8,7 @@
 class Interpreter
 {
 public:
-  void tick(Word &enc);
+  void tick(Word enc);
 
 private:
   Cpu                             m_cpu;

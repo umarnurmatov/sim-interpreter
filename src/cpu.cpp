@@ -93,7 +93,6 @@ Instr Cpu::decode(Word enc)
       break;
       
     case Opcode::kSyscall:
-      GET_INSTR_IMM(OPC_TO_INT(Opcode::kSyscall), enc);
       break;
 
     case Opcode::kJ:
@@ -147,8 +146,19 @@ void Cpu::exec(Instr inst)
       break;
     }
 
-    case Opcode::kSyscall:
+    case Opcode::kSyscall: {
+      Reg num = m_cpu->get_reg(Isa::x0);
+
+      switch(num) {
+        case Isa::kSyscallExit:
+          throw std::runtime_error("exec: exit");
+          break; 
+        default:
+          throw std::runtime_error("exec: unknown syscall num");
+          break;
+      }
       break;
+    }
       
     case Opcode::kAdd: {
       Reg res = m_cpu->get_reg(inst.f2) +
@@ -161,6 +171,7 @@ void Cpu::exec(Instr inst)
       Reg src = m_cpu->get_reg(inst.f1); 
       Reg sgn_satred = sgn_satr(src, inst.f3);
       m_cpu->set_reg(inst.f2, sgn_satred);
+      break;
     }
 
     case Opcode::kBeq: {
@@ -172,6 +183,7 @@ void Cpu::exec(Instr inst)
       Reg src   = m_cpu->get_reg(inst.f2),
           targt = m_cpu->get_reg(inst.f1);
       m_cpu->increment_pc(src == targt ? ofst : sizeof(Word));
+      break;
     }
 
     case Opcode::kLd: {
@@ -204,13 +216,13 @@ void Cpu::exec(Instr inst)
       SignedWord imm = sgn_extend(
         inst.f3,
         kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
-      break;
 
       Reg res = std::bit_cast<Reg>(
         std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2))
         + imm
       );
       m_cpu->set_reg(inst.f1, res);
+      break;
     }
 
     case Opcode::kJalr: {
@@ -266,6 +278,8 @@ void Cpu::exec(Instr inst)
       throw std::runtime_error("exec: unknown instr");
       break;
   }
+
+  m_cpu->increment_pc(sizeof(Word));
 }
 
 #undef OPC_TO_INT
@@ -278,27 +292,27 @@ static Opcode get_opcode(Word enc)
 
   if (opcode_lsb && !opcode_msb) {
     switch (opcode_lsb) {
-      case kOpcodeBdep:    op = Opcode::kBdep;    break;
-      case kOpcodeNor:     op = Opcode::kNor;     break;
-      case kOpcodeCls:     op = Opcode::kCls;     break;
-      case kOpcodeSyscall: op = Opcode::kSyscall; break;
-      case kOpcodeAdd:     op = Opcode::kAdd;     break;
+      case Isa::kOpcodeBdep:    op = Opcode::kBdep;    break;
+      case Isa::kOpcodeNor:     op = Opcode::kNor;     break;
+      case Isa::kOpcodeCls:     op = Opcode::kCls;     break;
+      case Isa::kOpcodeSyscall: op = Opcode::kSyscall; break;
+      case Isa::kOpcodeAdd:     op = Opcode::kAdd;     break;
       default:             op = Opcode::kUnknown; break;
     }
   }
   else {
     switch (opcode_msb) {
-      case kOpcodeSsat:    op = Opcode::kSsat;    break;
-      case kOpcodeBeq:     op = Opcode::kBeq;     break;
-      case kOpcodeLd:      op = Opcode::kLd;      break;
-      case kOpcodeCbit:    op = Opcode::kCbit;    break;
-      case kOpcodeJ:       op = Opcode::kJ;       break;
-      case kOpcodeAddi:    op = Opcode::kAddi;    break;
-      case kOpcodeJalr:    op = Opcode::kJalr;    break;
-      case kOpcodeSt:      op = Opcode::kSt;      break;
-      case kOpcodeStp:     op = Opcode::kStp;     break;
-      case kOpcodeLi:      op = Opcode::kLi;      break;
-      default:             op = Opcode::kUnknown; break;
+      case Isa::kOpcodeSsat:    op = Opcode::kSsat;    break;
+      case Isa::kOpcodeBeq:     op = Opcode::kBeq;     break;
+      case Isa::kOpcodeLd:      op = Opcode::kLd;      break;
+      case Isa::kOpcodeCbit:    op = Opcode::kCbit;    break;
+      case Isa::kOpcodeJ:       op = Opcode::kJ;       break;
+      case Isa::kOpcodeAddi:    op = Opcode::kAddi;    break;
+      case Isa::kOpcodeJalr:    op = Opcode::kJalr;    break;
+      case Isa::kOpcodeSt:      op = Opcode::kSt;      break;
+      case Isa::kOpcodeStp:     op = Opcode::kStp;     break;
+      case Isa::kOpcodeLi:      op = Opcode::kLi;      break;
+      default:                  op = Opcode::kUnknown; break;
     }
   }
 

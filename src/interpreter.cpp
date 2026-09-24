@@ -1,7 +1,7 @@
 #include "interpreter.hpp"
 
 
-void Interpreter::tick(Word &enc)
+void Interpreter::tick(Word enc)
 {
   auto inst_cached = m_cache.find(enc);
   if (inst_cached != m_cache.end()) {
