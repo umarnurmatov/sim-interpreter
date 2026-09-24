@@ -175,12 +175,16 @@ class Assembler
             op[:offst]
           )
         else
-          raise 'unknown operand type'
+          raise "unknown operand type: #{op[:type]}"
         end
       end
 
       buf << cmd_bin
     }
+  end
+
+  def method_missing(name, *args)
+    raise "unknown instruction: #{name}"
   end
   
   REGISTER_CNT.times do |i|
