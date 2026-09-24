@@ -199,9 +199,7 @@ void Cpu::exec(Instr inst)
         inst.f3,
         kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
 
-      Word addr = std::bit_cast<Word>(
-        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2)) 
-        + ofst);
+      Word addr = m_cpu->get_reg(inst.f2) + static_cast<Word>(ofst);
 
       m_cpu->set_reg(inst.f1, m_cpu->mem().load<Word>(addr));
       m_cpu->increment_pc(sizeof(Word));
@@ -227,10 +225,7 @@ void Cpu::exec(Instr inst)
         inst.f3,
         kInstrEnc[OPC_TO_INT(Opcode::kAddi)].f3.width);
 
-      Reg res = std::bit_cast<Reg>(
-        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2))
-        + imm
-      );
+      Reg res = m_cpu->get_reg(inst.f2) + static_cast<Reg>(imm);
       m_cpu->set_reg(inst.f1, res);
       m_cpu->increment_pc(sizeof(Word));
       break;
@@ -252,9 +247,7 @@ void Cpu::exec(Instr inst)
         inst.f3,
         kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
 
-      Word addr = std::bit_cast<Word>(
-        std::bit_cast<SignedWord>(m_cpu->get_reg(inst.f2)) 
-        + ofst);
+      Word addr = m_cpu->get_reg(inst.f2) + static_cast<Word>(ofst);
 
       m_cpu->mem().store(addr, m_cpu->get_reg(inst.f1));
       m_cpu->increment_pc(sizeof(Word));
@@ -269,9 +262,7 @@ void Cpu::exec(Instr inst)
 
       SignedWord ofst_ext = sgn_extend(ofst, f4_width);
 
-      Word addr = std::bit_cast<Word>(
-        std::bit_cast<SignedWord>(m_cpu->get_reg(base)) 
-        + ofst_ext);
+      Word addr = m_cpu->get_reg(base) + static_cast<Word>(ofst_ext);
 
       m_cpu->mem().store(addr               , m_cpu->get_reg(inst.f1));
       m_cpu->mem().store(addr + sizeof(Word), m_cpu->get_reg(inst.f2));

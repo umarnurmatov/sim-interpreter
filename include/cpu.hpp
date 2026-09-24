@@ -20,9 +20,7 @@ public:
   Reg get_reg(std::size_t reg) { return m_gpr[reg]; }
 
   void increment_pc(SignedWord incr) { 
-    m_pc = std::bit_cast<Reg>(
-      std::bit_cast<SignedWord>(m_pc) 
-      + incr); 
+    m_pc += static_cast<Reg>(incr);
   }
 
   void set_pc(Reg pc_new) { m_pc = pc_new; }
