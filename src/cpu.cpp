@@ -159,16 +159,16 @@ void Cpu::exec(Instr inst)
     }
 
     case Opcode::kSyscall: {
-      Reg num = m_cpu->get_reg(Isa::x8);
+      SyscallTrap trap {};
+      trap.num = m_cpu->get_reg(Isa::x8);
 
-      switch(num) {
-        case Isa::kSyscallExit:
-          throw std::runtime_error("exec: exit");
-          break; 
-        default:
-          throw std::runtime_error("exec: unknown syscall num");
-          break;
-      }
+      for (std::size_t i = 0; i < Isa::kSyscallArgCnt; ++i)
+        trap.args[i] = m_cpu->get_reg(i);
+
+      m_cpu->increment_pc(sizeof(Word));
+
+      throw trap;
+
       break;
     }
       

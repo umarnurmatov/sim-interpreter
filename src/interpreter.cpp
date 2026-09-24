@@ -9,13 +9,26 @@ void Interpreter::tick()
 {
   Word enc = m_cpu.fetch();
   auto inst_cached = m_cache.find(enc);
-  if (inst_cached != m_cache.end()) {
-    m_cpu.exec(inst_cached->second);
+
+  try {
+    if (inst_cached != m_cache.end()) {
+      m_cpu.exec(inst_cached->second);
+    }
+    else {
+      Instr inst = m_cpu.decode(enc);
+      m_cache[enc] = inst;
+      m_cpu.exec(inst);
+    }
   }
-  else {
-    Instr inst = m_cpu.decode(enc);
-    m_cache[enc] = inst;
-    m_cpu.exec(inst);
+  catch (const SyscallTrap &trap) {
+    switch (trap.num) {
+      case Isa::kSyscallExit:
+        m_exit_code = trap.args[0];
+        m_halted = true;
+        break;
+      default:
+        throw std::runtime_error("interpreter: unknown syscall");
+    }
   }
 }
 

@@ -35,6 +35,12 @@ private:
   Memory m_mem;
 };
 
+struct SyscallTrap
+{
+  Reg num;
+  std::array<Reg, Isa::kSyscallArgCnt> args;
+};
+
 class Cpu
 {  
 public:
