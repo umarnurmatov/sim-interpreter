@@ -23,6 +23,12 @@ Cpu::~Cpu()
   delete m_cpu;
 }
 
+
+Word Cpu::fetch()
+{
+  return m_cpu->mem().load<Word>(m_cpu->pc());
+}
+
 #define GET_FIELD_VAL(enc, width, offset) \
   ((enc >> offset) & ((1u << width) - 1))
 
@@ -286,6 +292,11 @@ void Cpu::exec(Instr inst)
 }
 
 #undef OPC_TO_INT
+
+void Cpu::load_binary(std::vector<std::byte> &bin)
+{
+  m_cpu->mem().load_bytes(0, bin); 
+}
 
 static Opcode get_opcode(Word enc)
 {

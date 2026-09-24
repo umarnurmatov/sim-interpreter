@@ -2,29 +2,29 @@
 
 #include <cstring>
 #include <stdexcept>
-#include <vector>
+#include <array>
 #include <cstdint>
+#include <vector>
 
 #include "isa.hpp"
 
 class Memory
 {
 public:
-  Memory()
-    : Memory(Isa::kRamSize)
-  {
-  }
-
-  Memory(const std::size_t ram_sz) 
-  {
-    m_ram.resize(ram_sz);
-  }
 
   template<MemoryType T>
   T load(std::size_t addr) const;
 
   template<MemoryType T>
   void store(std::size_t addr, T value);
+
+  void load_bytes(std::size_t addr, std::vector<std::byte> bytes)
+  {
+    if (addr + bytes.size() > m_ram.size() - 1)
+      throw std::runtime_error("memory: access out of bounds");
+
+    std::memcpy(m_ram.data() + addr, bytes.data(), sizeof(std::byte) * bytes.size());
+  }
 
 private:
   template <MemoryType T>
@@ -40,7 +40,7 @@ private:
       throw std::runtime_error("memory: misaligned access");
   }
 
-  std::vector<std::uint8_t> m_ram;
+  std::array<std::uint8_t, Isa::kRamSize> m_ram;
 };
 
 

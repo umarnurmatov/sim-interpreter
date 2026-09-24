@@ -39,8 +39,11 @@ class Cpu
 {  
 public:
   Cpu();
+  Word  fetch();
   Instr decode(Word enc);
-  void  exec  (Instr inst);
+  void  exec(Instr inst);
+
+  void  load_binary(std::vector<std::byte> &bin);
   ~Cpu();
 
 private:

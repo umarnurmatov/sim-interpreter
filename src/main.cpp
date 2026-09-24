@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <iostream>
-#include <fstream>
 
 #include "interpreter.hpp"
 
@@ -13,16 +12,11 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   
-  std::ifstream file(argv[1], std::ios::binary);
-  if (!file.is_open()) {
-    std::cerr << "could not open " << argv[1] << std::endl;
-    return EXIT_FAILURE;
-  }
+  if (int res = intrp.load_binary_file(argv[1]); res != 0)
+    return res;
 
-  while (!file.eof()) {
-    Word wd {};
-    file.read(reinterpret_cast<char*>(&wd), sizeof wd);
-    intrp.tick(wd);
+  while(!intrp.halted()) {
+    intrp.tick();
   }
 
   return EXIT_SUCCESS;
