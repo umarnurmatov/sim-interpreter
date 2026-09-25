@@ -152,8 +152,6 @@ class Assembler
         raise "#{mnemonic}: arg cnt mismatch"
       end
 
-      puts "#{mnemonic} #{args.join(", ")}"
-
       cmd_bin = enc_field(
         fields[:opcode][:val],
         fields[:opcode][:width],
