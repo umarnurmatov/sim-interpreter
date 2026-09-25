@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+!tests/*.d
 
 # Object files
 *.o

@@ -7,6 +7,8 @@
 #include "memory.hpp"
 #include "instr.hpp"
 
+#include "debug.hpp"
+
 struct CpuState
 {
 public:
@@ -48,9 +50,13 @@ public:
   Word  fetch();
   Instr decode(Word enc);
   void  exec(Instr inst);
+  Reg   pc() const { return m_cpu->pc(); }
 
   void  load_binary(std::vector<std::byte> &bin);
   ~Cpu();
+
+  IF_DEBUG(
+    Reg get_reg(std::size_t reg) const { return m_cpu->get_reg(reg); })
 
 private:
   CpuState* m_cpu;

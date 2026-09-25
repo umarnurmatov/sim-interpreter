@@ -5,6 +5,7 @@ BUILD_DIR    ?= build
 SRC_DIR      = src
 INCLUDE_DIRS = include
 EXECUTABLE   = interpreter.x
+ASSEMBLER 	 = as.rb
 
 # includes SOURCES variable
 # do not use -include, because it ignores files that could not be found
@@ -12,6 +13,13 @@ include $(SRC_DIR)/sources.mk
 
 OBJS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(SOURCES)))
 DEPS = $(patsubst %.o,%.d,$(OBJS))
+
+TEST_DIR = tests
+TEST_DATA_DIR = $(TEST_DIR)/data
+TEST_SOURCES = $(wildcard $(TEST_DIR)/*_test.cpp)
+TEST_OBJS = $(filter-out $(BUILD_DIR)/main.o,$(OBJS))
+TEST_BINS = $(patsubst $(TEST_DATA_DIR)/%.S,$(BUILD_DIR)/%.bin,$(wildcard $(TEST_DATA_DIR)/test_*.S))
+TEST_EXECUTABLE = $(BUILD_DIR)/cpu_test.x
 
 LIBS = 
 
@@ -68,6 +76,22 @@ $(DEPS): $(BUILD_DIR)/%.d: $(SRC_DIR)/%.cpp
 .PHONY: run
 run: $(BUILD_DIR)/$(EXECUTABLE)
 	@./$<
+
+.PHONY: test
+test: $(TEST_EXECUTABLE) $(TEST_BINS)
+	@./$(TEST_EXECUTABLE)
+
+$(TEST_EXECUTABLE): $(TEST_SOURCES) $(TEST_OBJS) $(wildcard include/*.hpp $(TEST_DIR)/*.hpp)
+	@echo -n Building test $@...
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CFLAGS) -DTEST_BUILD_DIR='"$(BUILD_DIR)"' -o $@ $(TEST_SOURCES) $(TEST_OBJS) -lgtest_main -lgtest -pthread $(LIBS)
+	@echo done
+
+$(BUILD_DIR)/%.bin: $(TEST_DATA_DIR)/%.S $(ASSEMBLER)
+	@echo -n Assembling test $<...
+	@mkdir -p $(BUILD_DIR)
+	@ruby $(ASSEMBLER) $< $@
+	@echo done
 
 .PHONY: clean
 clean:
