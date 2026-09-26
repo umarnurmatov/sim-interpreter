@@ -43,6 +43,8 @@ struct SyscallTrap
   std::array<Reg, Isa::kSyscallArgCnt> args;
 };
 
+#define CPU_DECLARE_EXEC_FUNC_(cmd) void exec_##cmd(Instr inst)
+
 class Cpu
 {  
 public:
@@ -56,8 +58,28 @@ public:
   ~Cpu();
 
   IF_DEBUG(
-    Reg get_reg(std::size_t reg) const { return m_cpu->get_reg(reg); })
+    Reg get_reg(std::size_t reg) const { 
+    return m_cpu->get_reg(reg); 
+  })
 
 private:
+  CPU_DECLARE_EXEC_FUNC_(bdep);
+  CPU_DECLARE_EXEC_FUNC_(nor);
+  CPU_DECLARE_EXEC_FUNC_(cls);
+  CPU_DECLARE_EXEC_FUNC_(syscall);
+  CPU_DECLARE_EXEC_FUNC_(add);
+  CPU_DECLARE_EXEC_FUNC_(ssat);
+  CPU_DECLARE_EXEC_FUNC_(beq);
+  CPU_DECLARE_EXEC_FUNC_(ld);
+  CPU_DECLARE_EXEC_FUNC_(cbit);
+  CPU_DECLARE_EXEC_FUNC_(j);
+  CPU_DECLARE_EXEC_FUNC_(addi);
+  CPU_DECLARE_EXEC_FUNC_(jalr);
+  CPU_DECLARE_EXEC_FUNC_(st);
+  CPU_DECLARE_EXEC_FUNC_(stp);
+  CPU_DECLARE_EXEC_FUNC_(li);
+
   CpuState* m_cpu;
 };
+
+#undef CPU_DECLARE_EXEC_FUNC_
