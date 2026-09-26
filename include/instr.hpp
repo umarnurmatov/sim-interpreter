@@ -4,6 +4,12 @@
 
 #include "isa.hpp"
 
+#define IS_CONTROL_INSTRUCTION(instr) \
+  (  instr.opc == Opcode::kJalr       \
+  || instr.opc == Opcode::kJ          \
+  || instr.opc == Opcode::kBeq        \
+  || instr.opc == Opcode::kSyscall)   \
+
 enum class Opcode : std::uint8_t
 {
   kUnknown = 0,

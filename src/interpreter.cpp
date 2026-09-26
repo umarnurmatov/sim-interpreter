@@ -4,21 +4,20 @@
 #include <ios>
 #include <iostream>
 
-
 void Interpreter::tick()
 {
-  Word enc = m_cpu.fetch();
-  auto inst_cached = m_cache.find(enc);
 
   try {
-    if (inst_cached != m_cache.end()) {
-      m_cpu.exec(inst_cached->second);
+    if (auto cache_it = m_cache.find(m_cpu.pc());
+        cache_it != m_cache.end()) {
+      m_cpu.exec_block(cache_it->second);
+      return;
     }
-    else {
-      Instr inst = m_cpu.decode(enc);
-      m_cache[enc] = inst;
-      m_cpu.exec(inst);
-    }
+    
+    Cpu::BasicBlk blk;
+    Reg pc_begin_blk = m_cpu.prefetch_basic_block(blk);
+    m_cache[pc_begin_blk] = blk;
+    m_cpu.exec_block(blk);
   }
   catch (const SyscallTrap &trap) {
     switch (trap.num) {
@@ -50,6 +49,8 @@ int Interpreter::load_binary_file(std::string filename)
   }
 
   m_cpu.load_binary(bytes);
+
+  m_cache.clear();
 
   return 0;
 }

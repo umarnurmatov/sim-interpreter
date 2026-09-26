@@ -19,8 +19,9 @@ public:
   bool halted() { return m_halted; }
 
 private:
-  Cpu                             m_cpu;
-  std::unordered_map<Word, Instr> m_cache;
-  bool                            m_halted;
-  int                             m_exit_code;
+  using BlkCache = std::unordered_map<Reg, Cpu::BasicBlk>;
+  BlkCache m_cache;
+  bool     m_halted;
+  int      m_exit_code;
+  Cpu      m_cpu;
 };

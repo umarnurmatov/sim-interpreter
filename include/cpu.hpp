@@ -49,9 +49,19 @@ class Cpu
 {  
 public:
   Cpu();
+
+
   Word  fetch();
   Instr decode(Word enc);
   void  exec(Instr inst);
+
+  using BasicBlk = std::vector<Instr>; 
+  void  exec_block(BasicBlk blk);
+
+  // @param blk ref to blk where instruction will be stored
+  // @return pc of the beginning of the block
+  Reg   prefetch_basic_block(BasicBlk &blk);
+
   Reg   pc() const { return m_cpu->pc(); }
 
   void  load_binary(std::vector<std::byte> &bin);

@@ -181,6 +181,25 @@ void Cpu::exec(Instr inst)
   }
 }
 
+void Cpu::exec_block(BasicBlk blk)
+{
+  for(auto& instr : blk)
+    exec(instr);
+}
+
+Reg Cpu::prefetch_basic_block(BasicBlk &blk)
+{
+  Reg pc_begin_blk = pc();
+  Instr instr { .opc = Opcode::kUnknown };
+  while (!IS_CONTROL_INSTRUCTION(instr)) {
+    instr = decode(fetch());
+    blk.push_back(instr);
+    m_cpu->increment_pc(sizeof(Word));
+  }
+  m_cpu->set_pc(pc_begin_blk);
+  return pc_begin_blk;
+}
+
 void Cpu::exec_bdep(Instr inst)
 {
   m_cpu->set_reg(
