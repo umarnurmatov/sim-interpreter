@@ -20,8 +20,8 @@ TEST_SOURCES = $(wildcard $(TEST_DIR)/*_test.cpp)
 TEST_OBJS = $(filter-out $(BUILD_DIR)/main.o,$(OBJS))
 TEST_BINS = $(patsubst $(TEST_DATA_DIR)/%.S,$(BUILD_DIR)/%.bin,$(wildcard $(TEST_DATA_DIR)/test_*.S))
 TEST_EXECUTABLE = $(BUILD_DIR)/cpu_test.x
+TEST_INCLUDE_DIR = tests
 
-LIBS = 
 
 # INCLUDE
 INCLUDE_DIRS_ALL = $(INCLUDE_DIRS)
@@ -60,13 +60,13 @@ all: $(BUILD_DIR)/$(EXECUTABLE)
 
 $(BUILD_DIR)/$(EXECUTABLE): $(OBJS)
 	@echo -n Linking $@...
-	@$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) -o $@ $^ 
 	@echo done
 
 $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo Building $@...
 	@mkdir -p $(BUILD_DIR)
-	@$(CC) $(CFLAGS) -c -o $@ $< $(LIBS)
+	@$(CC) $(CFLAGS) -c -o $@ $< 
 
 $(DEPS): $(BUILD_DIR)/%.d: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
@@ -84,7 +84,7 @@ test: $(TEST_EXECUTABLE) $(TEST_BINS)
 $(TEST_EXECUTABLE): $(TEST_SOURCES) $(TEST_OBJS) $(wildcard include/*.hpp $(TEST_DIR)/*.hpp)
 	@echo -n Building test $@...
 	@mkdir -p $(BUILD_DIR)
-	@$(CC) $(CFLAGS) -DTEST_BUILD_DIR='"$(BUILD_DIR)"' -o $@ $(TEST_SOURCES) $(TEST_OBJS) -lgtest_main -lgtest -pthread $(LIBS)
+	@$(CC) $(CFLAGS) -I$(TEST_INCLUDE_DIR) -DTEST_BUILD_DIR='"$(BUILD_DIR)"' -o $@ $(TEST_SOURCES) $(TEST_OBJS) -lgtest_main -lgtest -pthread 
 	@echo done
 
 $(BUILD_DIR)/%.bin: $(TEST_DATA_DIR)/%.S $(ASSEMBLER)

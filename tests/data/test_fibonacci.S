@@ -7,3 +7,5 @@ addi x2, x3, 0
 addi x3, x4, 0
 addi x1, x1, -1
 j 3
+li x8, 93
+syscall

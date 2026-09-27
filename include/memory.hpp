@@ -18,7 +18,7 @@ public:
   template<MemoryType T>
   void store(std::size_t addr, T value);
 
-  void load_bytes(std::size_t addr, std::vector<std::byte> bytes)
+  void load_bytes(std::size_t addr, const std::vector<std::byte>& bytes)
   {
     if (addr + bytes.size() > m_ram.size() - 1)
       throw std::runtime_error("memory: access out of bounds");

@@ -355,7 +355,7 @@ void Cpu::exec_li(Instr inst)
 
 #undef OPC_TO_INT
 
-void Cpu::load_binary(std::vector<std::byte> &bin)
+void Cpu::load_binary(const std::vector<std::byte> &bin)
 {
   m_cpu->mem().load_bytes(0, bin); 
 }

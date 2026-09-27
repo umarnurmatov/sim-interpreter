@@ -18,6 +18,11 @@ public:
 
   bool halted() { return m_halted; }
 
+  IF_DEBUG(
+    Reg get_reg(std::size_t reg) const { 
+      return m_cpu.get_reg(reg); 
+    })
+
 private:
   using BlkCache = std::unordered_map<Reg, Cpu::BasicBlk>;
   BlkCache m_cache;

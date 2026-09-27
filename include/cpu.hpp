@@ -64,7 +64,7 @@ public:
 
   Reg   pc() const { return m_cpu->pc(); }
 
-  void  load_binary(std::vector<std::byte> &bin);
+  void  load_binary(const std::vector<std::byte> &bin);
   ~Cpu();
 
   IF_DEBUG(
