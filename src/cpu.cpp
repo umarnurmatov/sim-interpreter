@@ -13,7 +13,26 @@ static SignedWord sgn_extend(Word wd, Word bitw);
 static void clr_bit(Word &wd, std::uint8_t pos);
 static Word bit_deposit(Word rg, Word mask);
 
+
 Cpu::Cpu()
+  : m_handlers {
+      &Cpu::exec_unknown,
+      &Cpu::exec_bdep,
+      &Cpu::exec_nor,
+      &Cpu::exec_cls,
+      &Cpu::exec_syscall,
+      &Cpu::exec_add,
+      &Cpu::exec_ssat,
+      &Cpu::exec_beq,
+      &Cpu::exec_ld,
+      &Cpu::exec_cbit,
+      &Cpu::exec_j,
+      &Cpu::exec_addi,
+      &Cpu::exec_jalr,
+      &Cpu::exec_st,
+      &Cpu::exec_stp,
+      &Cpu::exec_li
+    }
 {
   m_cpu = new CpuState {};
 }
@@ -128,80 +147,48 @@ Instr Cpu::decode(Word enc)
 #undef GET_INSTR_IMM
 #undef GET_INSTR_REG3_REG2OFFS
 
-void Cpu::exec(Instr inst)
+#define PRELUDE()                            \
+  [[maybe_unused]] Instr inst = blk.front(); \
+  blk.pop();               
+
+#if defined(__GNUC__) || defined(__clang__)
+#define DISPATCH()         \
+  if (blk.empty()) return; \
+  [[clang::musttail]]      \
+  return                   \
+  (this->*m_handlers[static_cast<std::size_t>(blk.front().opc)])(blk);
+#else
+#error "musttail must be specified"
+#endif
+
+void Cpu::exec_block(BasicBlk& blk)
 {
-  switch (inst.opc) {
-    case Opcode::kBdep:
-      exec_bdep(inst);
-      break;
-    case Opcode::kNor:
-      exec_nor(inst);
-      break;
-    case Opcode::kCls:
-      exec_cls(inst);
-      break;
-    case Opcode::kSyscall:
-      exec_syscall(inst);
-      break;
-    case Opcode::kAdd:
-      exec_add(inst);
-      break;
-    case Opcode::kSsat:
-      exec_ssat(inst);
-      break;
-    case Opcode::kBeq:
-      exec_beq(inst);
-      break;
-    case Opcode::kLd:
-      exec_ld(inst);
-      break;
-    case Opcode::kCbit:
-      exec_cbit(inst);
-      break;
-    case Opcode::kJ:
-      exec_j(inst);
-      break;
-    case Opcode::kAddi:
-      exec_addi(inst);
-      break;
-    case Opcode::kJalr:
-      exec_jalr(inst);
-      break;
-    case Opcode::kSt:
-      exec_st(inst);
-      break;
-    case Opcode::kStp:
-      exec_stp(inst);
-      break;
-    case Opcode::kLi:
-      exec_li(inst);
-      break;
-    default:
-      throw std::runtime_error("exec: unknown instr");
-  }
+  DISPATCH();
 }
 
-void Cpu::exec_block(BasicBlk blk)
-{
-  for(auto& instr : blk)
-    exec(instr);
-}
-
-Reg Cpu::prefetch_basic_block(BasicBlk &blk)
+Reg Cpu::prefetch_basic_block(BasicBlk& blk, std::size_t max_instr_cnt)
 {
   Reg pc_begin_blk = pc();
   Instr instr { .opc = Opcode::kUnknown };
-  while (!IS_CONTROL_INSTRUCTION(instr)) {
+  while (!IS_CONTROL_INSTRUCTION(instr) && max_instr_cnt-- > 0) {
     instr = decode(fetch());
-    blk.push_back(instr);
+    blk.push(instr);
     m_cpu->increment_pc(sizeof(Word));
   }
   m_cpu->set_pc(pc_begin_blk);
   return pc_begin_blk;
 }
 
-void Cpu::exec_bdep(Instr inst)
+
+void Cpu::exec_unknown(BasicBlk& blk)
 {
+  throw std::runtime_error("exec: unknown instruction");
+}
+
+void Cpu::exec_bdep(BasicBlk& blk)
+{
+  PRELUDE();
+
   m_cpu->set_reg(
     inst.f3,
     bit_deposit(
@@ -209,26 +196,38 @@ void Cpu::exec_bdep(Instr inst)
       m_cpu->get_reg(inst.f1))
   );
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_nor(Instr inst)
+void Cpu::exec_nor(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg res = ~(m_cpu->get_reg(inst.f2)
               | m_cpu->get_reg(inst.f3));
   m_cpu->set_reg(inst.f1, res);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_cls(Instr inst)
+void Cpu::exec_cls(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg src = m_cpu->get_reg(inst.f1);
   std::size_t ones_cnt = cnt_lead_ones(src);
   m_cpu->set_reg(inst.f2, ones_cnt);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_syscall(Instr)
+void Cpu::exec_syscall(BasicBlk& blk)
 {
+  PRELUDE();
+
   SyscallTrap trap {};
   trap.num = m_cpu->get_reg(Isa::x8);
 
@@ -240,24 +239,34 @@ void Cpu::exec_syscall(Instr)
   throw trap;
 }
 
-void Cpu::exec_add(Instr inst)
+void Cpu::exec_add(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg res = m_cpu->get_reg(inst.f2) +
             m_cpu->get_reg(inst.f3);
   m_cpu->set_reg(inst.f1, res);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_ssat(Instr inst)
+void Cpu::exec_ssat(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg src = m_cpu->get_reg(inst.f1);
   Reg sgn_satred = sgn_satr(src, inst.f3);
   m_cpu->set_reg(inst.f2, sgn_satred);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_beq(Instr inst)
+void Cpu::exec_beq(BasicBlk& blk)
 {
+  PRELUDE();
+
   // FIXME
   SignedWord ofst = sgn_extend(
     inst.f3 << 2,
@@ -266,10 +275,14 @@ void Cpu::exec_beq(Instr inst)
   Reg src   = m_cpu->get_reg(inst.f2),
       targt = m_cpu->get_reg(inst.f1);
   m_cpu->increment_pc(src == targt ? ofst : sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_ld(Instr inst)
+void Cpu::exec_ld(BasicBlk& blk)
 {
+  PRELUDE();
+
   SignedWord ofst = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
@@ -278,24 +291,36 @@ void Cpu::exec_ld(Instr inst)
 
   m_cpu->set_reg(inst.f1, m_cpu->mem().load<Word>(addr));
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_cbit(Instr inst)
+void Cpu::exec_cbit(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg src = m_cpu->get_reg(inst.f2);
   clr_bit(src, inst.f3);
   m_cpu->set_reg(inst.f1, src);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_j(Instr inst)
+void Cpu::exec_j(BasicBlk& blk)
 {
+  PRELUDE();
+
   m_cpu->set_pc(
     (m_cpu->pc() & 0xf0000000) | (inst.f3 << 2));
+
+  DISPATCH();
 }
 
-void Cpu::exec_addi(Instr inst)
+void Cpu::exec_addi(BasicBlk& blk)
 {
+  PRELUDE();
+
   SignedWord imm = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kAddi)].f3.width);
@@ -303,10 +328,14 @@ void Cpu::exec_addi(Instr inst)
   Reg res = m_cpu->get_reg(inst.f2) + static_cast<Reg>(imm);
   m_cpu->set_reg(inst.f1, res);
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_jalr(Instr inst)
+void Cpu::exec_jalr(BasicBlk& blk)
 {
+  PRELUDE();
+
   Reg link = m_cpu->pc() + sizeof(Word);
   SignedWord imm = sgn_extend(
     inst.f3,
@@ -314,10 +343,14 @@ void Cpu::exec_jalr(Instr inst)
   Reg src = m_cpu->get_reg(inst.f2);
   m_cpu->set_pc((src + imm) & 0xfffffffe);
   m_cpu->set_reg(inst.f1, link);
+
+  DISPATCH();
 }
 
-void Cpu::exec_st(Instr inst)
+void Cpu::exec_st(BasicBlk& blk)
 {
+  PRELUDE();
+
   SignedWord ofst = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
@@ -326,10 +359,14 @@ void Cpu::exec_st(Instr inst)
 
   m_cpu->mem().store(addr, m_cpu->get_reg(inst.f1));
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_stp(Instr inst)
+void Cpu::exec_stp(BasicBlk& blk)
 {
+  PRELUDE();
+
   auto f4_width = kInstrEnc[OPC_TO_INT(Opcode::kStp)].f4.width;
 
   Word base = inst.f3 >> f4_width;
@@ -342,22 +379,31 @@ void Cpu::exec_stp(Instr inst)
   m_cpu->mem().store(addr               , m_cpu->get_reg(inst.f1));
   m_cpu->mem().store(addr + sizeof(Word), m_cpu->get_reg(inst.f2));
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
-void Cpu::exec_li(Instr inst)
+void Cpu::exec_li(BasicBlk& blk)
 {
+  PRELUDE();
+
   SignedWord imm = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLi)].f3.width);
   m_cpu->set_reg(inst.f1, std::bit_cast<Reg>(imm));
   m_cpu->increment_pc(sizeof(Word));
+
+  DISPATCH();
 }
 
 #undef OPC_TO_INT
+#undef PRELUDE
+#undef DISPATCH
 
 void Cpu::load_binary(const std::vector<std::byte> &bin)
 {
   m_cpu->mem().load_bytes(0, bin); 
+  m_cpu->set_pc(0);
 }
 
 static Opcode get_opcode(Word enc)

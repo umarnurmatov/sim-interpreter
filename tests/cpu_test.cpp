@@ -31,8 +31,9 @@ TEST_P(InstrTestParametrizedFixture, RegisterResult)
 {
   const auto &value = GetParam();
   m_cpu.load_binary(value.program);
-  for (size_t cnt = 0; cnt < value.instr_cnt; ++cnt)
-    m_cpu.exec(m_cpu.decode(m_cpu.fetch()));
+  Cpu::BasicBlk blk {};
+  m_cpu.prefetch_basic_block(blk, value.instr_cnt);
+  m_cpu.exec_block(blk);
 
   EXPECT_EQ(m_cpu.get_reg(value.rg), value.expected);
   EXPECT_EQ(m_cpu.pc(), value.expected_pc);
@@ -43,15 +44,14 @@ TEST_F(CpuTestFixture, SyscallTrap)
   auto value = read_test_val(
     TEST_BUILD_DIR "/test_syscall.bin", "tests/data/test_syscall.dat").front();
   m_cpu.load_binary(value.program);
+  Cpu::BasicBlk blk {};
+  m_cpu.prefetch_basic_block(blk);
 
-  for (size_t cnt = 0; cnt < value.instr_cnt - 1; ++cnt)
-    m_cpu.exec(m_cpu.decode(m_cpu.fetch()));
-
-  // last instr is syscall
   try {
-    m_cpu.exec(m_cpu.decode(m_cpu.fetch()));
+    m_cpu.exec_block(blk);
     FAIL() << "Expected SyscallTrap";
   }
+
   catch (const SyscallTrap &trap) { }
 
   EXPECT_EQ(m_cpu.get_reg(value.rg), value.expected);

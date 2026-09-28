@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <queue>
 
 #include "isa.hpp"
 #include "memory.hpp"
@@ -43,7 +44,7 @@ struct SyscallTrap
   std::array<Reg, Isa::kSyscallArgCnt> args;
 };
 
-#define CPU_DECLARE_EXEC_FUNC_(cmd) void exec_##cmd(Instr inst)
+#define CPU_DECLARE_EXEC_FUNC_(cmd) void exec_##cmd(BasicBlk& blk)
 
 class Cpu
 {  
@@ -53,18 +54,23 @@ public:
 
   Word  fetch();
   Instr decode(Word enc);
-  void  exec(Instr inst);
 
-  using BasicBlk = std::vector<Instr>; 
-  void  exec_block(BasicBlk blk);
+  using BasicBlk = std::queue<Instr>; 
+  void  exec_block(BasicBlk& blk);
 
   // @param blk ref to blk where instruction will be stored
+  // @param max_instr_cnt maximum instruction cnt in block
   // @return pc of the beginning of the block
-  Reg   prefetch_basic_block(BasicBlk &blk);
+  Reg   prefetch_basic_block(BasicBlk& blk, 
+                             std::size_t max_instr_cnt = 
+                              std::numeric_limits<std::size_t>::max());
 
   Reg   pc() const { return m_cpu->pc(); }
 
+  // loads binary to address 0 and resets pc
+  // @param bin binary instructions
   void  load_binary(const std::vector<std::byte> &bin);
+
   ~Cpu();
 
   IF_DEBUG(
@@ -73,6 +79,7 @@ public:
   })
 
 private:
+  CPU_DECLARE_EXEC_FUNC_(unknown);
   CPU_DECLARE_EXEC_FUNC_(bdep);
   CPU_DECLARE_EXEC_FUNC_(nor);
   CPU_DECLARE_EXEC_FUNC_(cls);
@@ -90,6 +97,10 @@ private:
   CPU_DECLARE_EXEC_FUNC_(li);
 
   CpuState* m_cpu;
+
+  using ExecHandler = void (Cpu::*)(BasicBlk&);
+  // handlers[Opcode::k<instr_name>] = &exec_<instr_name>;
+  std::array<ExecHandler, Isa::kInstrCnt + 1> m_handlers;
 };
 
 #undef CPU_DECLARE_EXEC_FUNC_

@@ -3,18 +3,21 @@
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <limits>
 
 void Interpreter::tick()
 {
 
   try {
+    Cpu::BasicBlk blk;
+
     if (auto cache_it = m_cache.find(m_cpu.pc());
         cache_it != m_cache.end()) {
-      m_cpu.exec_block(cache_it->second);
+      blk = cache_it->second;
+      m_cpu.exec_block(blk);
       return;
     }
     
-    Cpu::BasicBlk blk;
     Reg pc_begin_blk = m_cpu.prefetch_basic_block(blk);
     m_cache[pc_begin_blk] = blk;
     m_cpu.exec_block(blk);
@@ -43,7 +46,7 @@ int Interpreter::load_binary_file(std::string filename)
   std::vector<std::byte> bytes {static_cast<std::size_t>(size)};
 
   file.seekg(std::ios::beg);
-  if(!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
+  if (!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
     std::cerr << "interpreter: could not read file" << std::endl;
     return 1;
   }

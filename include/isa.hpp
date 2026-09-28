@@ -20,6 +20,7 @@ namespace Isa
 constexpr std::size_t kNumRegs       = 32;
 constexpr std::size_t kRamSize       = 1024;
 constexpr std::size_t kSyscallArgCnt = 8;
+constexpr std::size_t kInstrCnt      = 15;
 
 // Opcode in [5:0]
 constexpr std::uint8_t kOpcodeBdep    = 0b011110;
