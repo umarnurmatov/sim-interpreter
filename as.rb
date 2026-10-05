@@ -220,7 +220,7 @@ private
           )
         elsif op[:type] == :numeric
           cmd_bin |= enc_field(
-            Integer(val, 10)
+            Integer(val.to_s, 10),
             op[:width],
             op[:offst]
           )
