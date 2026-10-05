@@ -7,21 +7,21 @@ INCLUDE_DIRS = include
 EXECUTABLE   = interpreter.x
 ASSEMBLER 	 = as.rb
 
-# includes SOURCES variable
+# includes SOURCES and TEST_SOURCES variable
 # do not use -include, because it ignores files that could not be found
 include $(SRC_DIR)/sources.mk
 
 OBJS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(SOURCES)))
 DEPS = $(patsubst %.o,%.d,$(OBJS))
 
-TEST_DIR = tests
-TEST_DATA_DIR = $(TEST_DIR)/data
-TEST_SOURCES = $(wildcard $(TEST_DIR)/*_test.cpp)
-TEST_OBJS = $(filter-out $(BUILD_DIR)/main.o,$(OBJS))
-TEST_BINS = $(patsubst $(TEST_DATA_DIR)/%.S,$(BUILD_DIR)/%.bin,$(wildcard $(TEST_DATA_DIR)/test_*.S))
-TEST_EXECUTABLE = $(BUILD_DIR)/cpu_test.x
+TEST_DIR 				 = tests
+TEST_DATA_DIR 	 = $(TEST_DIR)/data
+TEST_OBJS 			 = $(filter-out $(BUILD_DIR)/main.o,$(OBJS))
+TEST_BINS 		   = $(patsubst $(TEST_DATA_DIR)/%.S,$(BUILD_DIR)/%.bin,$(wildcard $(TEST_DATA_DIR)/test_*.S))
+TEST_EXECUTABLE  = $(BUILD_DIR)/test.x
 TEST_INCLUDE_DIR = tests
 
+include $(TEST_DIR)/sources.mk
 
 # INCLUDE
 INCLUDE_DIRS_ALL = $(INCLUDE_DIRS)

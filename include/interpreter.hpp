@@ -17,6 +17,8 @@ public:
 
   bool halted() { return m_halted; }
 
+  Reg exit_code() { return m_exit_code; }
+
   IF_DEBUG(
     Reg get_reg(std::size_t reg) const { 
       return m_cpu.get_reg(reg); 
