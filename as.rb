@@ -138,11 +138,63 @@ class Assembler
   def initialize
     @buf = []
     @regs = {}
+    @labels = {}
 
     REGISTER_CNT.times do |i|
       @regs["x#{i}"] = i
     end
   end
+
+  def collect_labels(filename)
+    pc = 0
+    File.foreach(filename) do |line|
+      line.strip!()
+      next if line.empty?()
+      ind = line.index(':')
+      if ind != nil
+        if !@labels.has_key?(line[0,ind])
+          @labels[line[0,ind]] = pc
+        else
+          raise "duplicate label"
+        end
+      else 
+        pc += 1
+      end
+    end
+  end
+
+  def assemble(filename)
+    pc = 0
+    File.foreach(filename) do |line|
+
+      ind = line.index(':')
+      next if line.index(':') != nil
+      next if line.strip().empty?()
+
+      splitted = line.split(" ", 2)
+      mnemonic, args = splitted[0].strip(), splitted[1].split(",")
+      args.map!(&:strip)
+
+      case mnemonic
+      when "stp"
+        offst_base = args.delete_at(2).delete_suffix(')')
+        offst, base = offst_base.split('(')
+        args << base << offst
+      when "st", "ld"
+        args[1].delete_prefix!("[")
+        args[2].delete_suffix!("]")
+      when "beq"
+        args[2] = label_to_pc(args[2]) - pc
+      when "j"
+        args[0] = label_to_pc(args[0])
+      end
+
+      self.send(mnemonic, *args)
+      pc += 1
+    end
+  end
+
+private
 
   INSTR_ENCS.each do |mnemonic, fields|
     define_method(mnemonic) { |*args|
@@ -168,7 +220,7 @@ class Assembler
           )
         elsif op[:type] == :numeric
           cmd_bin |= enc_field(
-            val.to_i(),
+            Integer(val, 10)
             op[:width],
             op[:offst]
           )
@@ -181,19 +233,26 @@ class Assembler
     }
   end
 
-  def method_missing(name, *args)
-    raise "unknown instruction: #{name}"
-  end
-  
   REGISTER_CNT.times do |i|
     define_method("x#{i}") { i }
   end
 
+  def method_missing(name, *args)
+    raise "unknown instruction: #{name}"
+  end
+
+  def label_to_pc(lbl)
+    if @labels.has_key?(lbl)
+      return @labels[lbl]
+    else
+      raise "unknown label #{lbl}"
+    end
+  end
+
+public
   def write_bin(path)
     File.open(path, "wb") do |f|
-      @buf.each do |cmd|
-        f.write([cmd].pack("V"))
-      end
+      @buf.each { |cmd| f.write([cmd].pack("V")) }
     end
   end
 
@@ -205,24 +264,6 @@ private
 end
 
 as = Assembler.new
-
-File.foreach(ARGV[0]) do |line|
-  splitted = line.split(" ", 2)
-  mnemonic, args = splitted[0].strip(), splitted[1].split(",")
-
-  args.map! { |arg| arg.strip() }
-
-  if mnemonic == "stp"
-    offst_base = args.delete_at(2).delete_suffix(')')
-    offst, base = offst_base.split('(')
-    args << base << offst
-  elsif mnemonic == "st" || mnemonic == "ld"
-    args[1].delete_prefix!("[")
-    args[2].delete_suffix!("]")
-  end
-
-  as.send(mnemonic, *args)
-
-end
-
+as.collect_labels(ARGV[0])
+as.assemble(ARGV[0])
 as.write_bin(ARGV[1])
