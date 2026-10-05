@@ -22,7 +22,7 @@ public:
 
   Reg get_reg(std::size_t reg) { return m_gpr[reg]; }
 
-  void increment_pc(SignedWord incr) { 
+  void increment_pc(Word incr) { 
     m_pc += static_cast<Reg>(incr);
   }
 

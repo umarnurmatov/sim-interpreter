@@ -3,12 +3,9 @@
 #include <cstdint>
 #include <concepts>
 
-using Word       = std::uint32_t;
-using SignedWord = std::int32_t;
-using Byte       = std::uint8_t;
-using Reg        = std::uint32_t;
-
-constexpr std::size_t kRegWidth  = sizeof(Reg) * 8;
+using Word = std::uint32_t;
+using Byte = std::uint8_t;
+using Reg  = std::uint32_t;
 
 template <typename T>
 concept MemoryType =
@@ -16,6 +13,9 @@ concept MemoryType =
 
 namespace Isa 
 {
+
+constexpr std::size_t kRegWidth  = sizeof(Reg) * 8;
+constexpr std::size_t kWordWidth = sizeof(Word) * 8;
 
 constexpr std::size_t kNumRegs       = 32;
 constexpr std::size_t kRamSize       = 1024;

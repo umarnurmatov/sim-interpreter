@@ -2,14 +2,16 @@
 
 #include <algorithm>
 #include <bit>
+#include <cassert>
 #include <stdexcept>
 
 #include "immintrin.h"
+#include "isa.hpp"
 
 static Opcode get_opcode(Word enc);
 static std::size_t cnt_lead_ones(Word rg);
 static Word sgn_satr(Word rg, Word n);
-static SignedWord sgn_extend(Word wd, Word bitw);
+static Word sgn_extend(Word wd, Word bitw);
 static void clr_bit(Word &wd, std::uint8_t pos);
 static Word bit_deposit(Word rg, Word mask);
 
@@ -115,25 +117,19 @@ Instr Cpu::decode(Word enc)
     case Opcode::kSt:
       GET_INSTR_REG3_REG2OFFS(OPC_TO_INT(Opcode::kSt), enc);
       break;
-
     case Opcode::kCls:
       GET_INSTR_REG2(OPC_TO_INT(Opcode::kCls), enc);
       break;
-      
     case Opcode::kSyscall:
       break;
-
     case Opcode::kJ:
       GET_INSTR_IMM(OPC_TO_INT(Opcode::kJ), enc);
       break;
-
     case Opcode::kStp: {
       GET_INSTR_STP(enc);
       break;
     }
-
     default:
-      throw std::runtime_error("decode: unknown instruction");
       break;
   }
 
@@ -267,8 +263,7 @@ void Cpu::exec_beq(BasicBlk& blk)
 {
   PRELUDE();
 
-  // FIXME
-  SignedWord ofst = sgn_extend(
+  Word ofst = sgn_extend(
     inst.f3 << 2,
     kInstrEnc[OPC_TO_INT(Opcode::kBeq)].f3.width + 2);
 
@@ -283,7 +278,7 @@ void Cpu::exec_ld(BasicBlk& blk)
 {
   PRELUDE();
 
-  SignedWord ofst = sgn_extend(
+  Word ofst = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
 
@@ -321,7 +316,7 @@ void Cpu::exec_addi(BasicBlk& blk)
 {
   PRELUDE();
 
-  SignedWord imm = sgn_extend(
+  Word imm = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kAddi)].f3.width);
 
@@ -337,7 +332,7 @@ void Cpu::exec_jalr(BasicBlk& blk)
   PRELUDE();
 
   Reg link = m_cpu->pc() + sizeof(Word);
-  SignedWord imm = sgn_extend(
+  Word imm = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kJalr)].f3.width);
   Reg src = m_cpu->get_reg(inst.f2);
@@ -351,7 +346,7 @@ void Cpu::exec_st(BasicBlk& blk)
 {
   PRELUDE();
 
-  SignedWord ofst = sgn_extend(
+  Word ofst = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLd)].f3.width);
 
@@ -372,7 +367,7 @@ void Cpu::exec_stp(BasicBlk& blk)
   Word base = inst.f3 >> f4_width;
   Word ofst = inst.f3 & ((1u << f4_width) - 1);
 
-  SignedWord ofst_ext = sgn_extend(ofst, f4_width);
+  Word ofst_ext = sgn_extend(ofst, f4_width);
 
   Word addr = m_cpu->get_reg(base) + static_cast<Word>(ofst_ext);
 
@@ -387,7 +382,7 @@ void Cpu::exec_li(BasicBlk& blk)
 {
   PRELUDE();
 
-  SignedWord imm = sgn_extend(
+  Word imm = sgn_extend(
     inst.f3,
     kInstrEnc[OPC_TO_INT(Opcode::kLi)].f3.width);
   m_cpu->set_reg(inst.f1, std::bit_cast<Reg>(imm));
@@ -445,11 +440,11 @@ static std::size_t cnt_lead_ones(Word rg)
 {
   #if defined(__GNUC__)
     return rg == UINT32_MAX 
-                 ? kRegWidth 
+                 ? Isa::kRegWidth 
                  : static_cast<std::size_t>(__builtin_clz(~rg));
   #else
     std::size_t cnt = 0;
-    while (rg & (1u << (kRegWidth - 1))) {
+    while (rg & (1u << (Isa::kRegWidth - 1))) {
         ++n;
         rg <<= 1;
     }
@@ -460,10 +455,12 @@ static std::size_t cnt_lead_ones(Word rg)
 // assuming n <= 31
 static Word sgn_satr(Word rg, Word n)
 {
-  SignedWord lower_b = -(1 << (n-1));
-  SignedWord upper_b = (1 << (n-1)) - 1;
-  SignedWord res = std::clamp<SignedWord>(
-    std::bit_cast<SignedWord>(rg), 
+  assert(n < Isa::kWordWidth);
+
+  int32_t lower_b = -(1 << (n-1));
+  int32_t upper_b = (1 << (n-1)) - 1;
+  int32_t res = std::clamp<int32_t>(
+    std::bit_cast<int32_t>(rg), 
     lower_b, 
     upper_b);
 
@@ -471,10 +468,12 @@ static Word sgn_satr(Word rg, Word n)
 }
 
 // assuming bitw <= 31
-static SignedWord sgn_extend(Word wd, Word bitw)
+static Word sgn_extend(Word wd, Word bitw)
 {
+  assert(bitw < Isa::kWordWidth);
+
   const Word m = 1u << (bitw - 1);   
-  return std::bit_cast<SignedWord>((wd ^ m) - m);
+  return (wd ^ m) - m;
 }
 
 static void clr_bit(Word &wd, std::uint8_t pos)

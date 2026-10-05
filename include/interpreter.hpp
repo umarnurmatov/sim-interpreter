@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include "instr.hpp"
 #include "cpu.hpp"
 
 class Interpreter
