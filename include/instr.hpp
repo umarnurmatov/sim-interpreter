@@ -72,3 +72,5 @@ struct Instr
        f2{};
   Word f3{}; // (f3 << width_f4) | f4
 };
+
+Opcode get_opcode(Word enc);

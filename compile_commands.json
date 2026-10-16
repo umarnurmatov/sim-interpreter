@@ -1,6 +1,6 @@
 [
   {
-    "file": "src/main.cpp",
+    "file": "tests/cpu_test.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-std=c++20",
@@ -11,8 +11,9 @@
       "-D",
       "_DEBUG",
       "-ggdb3",
-      "-O0",
+      "-O2",
       "-g",
+      "-march=native",
       "-fcheck-new",
       "-fsized-deallocation",
       "-fstack-protector",
@@ -21,16 +22,18 @@
       "-fno-omit-frame-pointer",
       "-fPIE",
       "-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr",
-      "-c",
+      "-Itests",
+      "-DTEST_BUILD_DIR=\"build\"",
       "-o",
-      "build/main.o",
-      "src/main.cpp"
+      "build/cpu_test.x",
+      "tests/cpu_test.cpp",
+      "-pthread"
     ],
-    "directory": "/home/n1njaeng1neer/source/sim/sim-interpreter",
-    "output": "build/main.o"
+    "directory": "/home/n1njaeng1neer/source/mipt-sim/sim-interpreter",
+    "output": "build/cpu_test.x"
   },
   {
-    "file": "src/cpu.cpp",
+    "file": "tests/interpreter_test.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-std=c++20",
@@ -41,8 +44,9 @@
       "-D",
       "_DEBUG",
       "-ggdb3",
-      "-O0",
+      "-O2",
       "-g",
+      "-march=native",
       "-fcheck-new",
       "-fsized-deallocation",
       "-fstack-protector",
@@ -51,72 +55,14 @@
       "-fno-omit-frame-pointer",
       "-fPIE",
       "-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr",
-      "-c",
+      "-Itests",
+      "-DTEST_BUILD_DIR=\"build\"",
       "-o",
-      "build/cpu.o",
-      "src/cpu.cpp"
+      "build/cpu_test.x",
+      "tests/interpreter_test.cpp",
+      "-pthread"
     ],
-    "directory": "/home/n1njaeng1neer/source/sim/sim-interpreter",
-    "output": "build/cpu.o"
-  },
-  {
-    "file": "src/memory.cpp",
-    "arguments": [
-      "/usr/bin/g++",
-      "-std=c++20",
-      "-Iinclude",
-      "-Wall",
-      "-Wextra",
-      "-Werror=vla",
-      "-D",
-      "_DEBUG",
-      "-ggdb3",
-      "-O0",
-      "-g",
-      "-fcheck-new",
-      "-fsized-deallocation",
-      "-fstack-protector",
-      "-fstrict-overflow",
-      "-flto-odr-type-merging",
-      "-fno-omit-frame-pointer",
-      "-fPIE",
-      "-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr",
-      "-c",
-      "-o",
-      "build/memory.o",
-      "src/memory.cpp"
-    ],
-    "directory": "/home/n1njaeng1neer/source/sim/sim-interpreter",
-    "output": "build/memory.o"
-  },
-  {
-    "file": "src/interpreter.cpp",
-    "arguments": [
-      "/usr/bin/g++",
-      "-std=c++20",
-      "-Iinclude",
-      "-Wall",
-      "-Wextra",
-      "-Werror=vla",
-      "-D",
-      "_DEBUG",
-      "-ggdb3",
-      "-O0",
-      "-g",
-      "-fcheck-new",
-      "-fsized-deallocation",
-      "-fstack-protector",
-      "-fstrict-overflow",
-      "-flto-odr-type-merging",
-      "-fno-omit-frame-pointer",
-      "-fPIE",
-      "-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr",
-      "-c",
-      "-o",
-      "build/interpreter.o",
-      "src/interpreter.cpp"
-    ],
-    "directory": "/home/n1njaeng1neer/source/sim/sim-interpreter",
-    "output": "build/interpreter.o"
+    "directory": "/home/n1njaeng1neer/source/mipt-sim/sim-interpreter",
+    "output": "build/cpu_test.x"
   }
 ]

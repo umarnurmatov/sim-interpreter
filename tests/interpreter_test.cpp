@@ -1,13 +1,14 @@
 #include <gtest/gtest.h> 
 
 #include <fstream>
+#include "interp_executor.hpp"
 
-#include "interpreter.hpp"
+static int load_binary_file(BaseExecutor* executor, std::string filename);
 
 class InterpreterTestFixture : public testing::Test
 {
 protected:
-  Interpreter intrp;
+  InterpExecutor intrp;
 };
 
 class ProgramTestParametrizedFixture : public InterpreterTestFixture,
@@ -19,13 +20,11 @@ class ProgramTestParametrizedFixture : public InterpreterTestFixture,
 TEST_P(ProgramTestParametrizedFixture, Result)
 {
   const auto &bin_fname = GetParam();
-  ASSERT_EQ(intrp.load_binary_file(bin_fname), 0) << "Could not load bin file";
+  ASSERT_EQ(load_binary_file(&intrp, bin_fname), 0) << "Could not load bin file";
 
-  while(!intrp.halted()) {
-    intrp.tick();
-  }
+  int exit_code = intrp.run();
 
-  EXPECT_EQ(intrp.exit_code(), 0) << "Exited with code " << intrp.exit_code();
+  EXPECT_EQ(exit_code, 0) << "Exited with code " << exit_code;
 }
 
 INSTANTIATE_TEST_SUITE_P(FibonacciTest, ProgramTestParametrizedFixture, 
@@ -72,3 +71,25 @@ INSTANTIATE_TEST_SUITE_P(StTest, ProgramTestParametrizedFixture,
 
 INSTANTIATE_TEST_SUITE_P(StpTest, ProgramTestParametrizedFixture,
   testing::Values(TEST_BUILD_DIR "/test_stp.bin"));
+
+static int load_binary_file(BaseExecutor* executor, std::string filename)
+{
+  std::ifstream file(filename, std::ios::binary | std::ios::ate);
+  if (!file.is_open()) {
+    std::cerr << "could not open file" << std::endl;
+    return 1;
+  }
+
+  const std::streamoff size = file.tellg();
+  std::vector<std::byte> bytes {static_cast<std::size_t>(size)};
+
+  file.seekg(std::ios::beg);
+  if (!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
+    std::cerr << "could not read file" << std::endl;
+    return 1;
+  }
+
+  executor->load_binary(bytes);
+
+  return 0;
+}
