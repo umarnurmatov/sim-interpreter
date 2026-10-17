@@ -10,6 +10,7 @@
 | g++    | >= 12   |
 | gtest  |         |
 | ruby   | >= 3.4  |
+| [cxxopts](https://github.com/jarro2783/cxxopts) | >= 3.3.1 |
 
 ### Build interpreter
 
@@ -19,8 +20,9 @@ make all
 
 ### Run interpreter
 ```shell
-./<BUILD_DIR>/interpreter.o <binary_input>
+./<BUILD_DIR>/interpreter.o [OPTION] <binary input>
 ```
+For option list, see `help`.
 
 ### Run assembler
 ```shell

@@ -18,7 +18,8 @@ int main(int argc, char* argv[])
 
   opts.add_options()
     ("input",  "input file", cxxopts::value<std::string>())
-    ("m,mode", "mode",       cxxopts::value<std::string>());
+    ("m,mode", "mode",       cxxopts::value<std::string>())
+    ("h,help", "help"                                     );
   opts.parse_positional({ "input" });
 
   auto opts_parsed = opts.parse(argc, argv);
