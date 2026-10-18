@@ -1,6 +1,8 @@
-# Interpreter
+# TOY-ISA simulator
 
-## Build & Run
+ISA description is available in `docs/isa.pdf`. This project includes assembler and simulator.
+
+## Simulator
 
 ### Prerequisites
 
@@ -12,25 +14,32 @@
 | ruby   | >= 3.4  |
 | [cxxopts](https://github.com/jarro2783/cxxopts) | >= 3.3.1 |
 
-### Build interpreter
+### Build
 
-```shell
+Debug build:
+```sh
 make all
 ```
-
-### Run interpreter
-```shell
-./<BUILD_DIR>/interpreter.o [OPTION] <binary input>
+Release build:
+```sh
+make TARGET=Release all
 ```
-For option list, see `help`.
 
-### Run assembler
-```shell
-ruby as.rb <listing> <binary_output>
+### Run
+```sh
+./<BUILD_DIR>/interpreter.o [OPTIONS] <input>
+```
+For available option list, run with `--help`.
+
+## Assembler 
+### Run
+```sh
+ruby as.rb <asm> <output>
 ```
 
 ## Tests
-
-```shell
+Project includes system tests for every ISA instruction.
+To build & run them, use:
+```sh
 make test
 ```
