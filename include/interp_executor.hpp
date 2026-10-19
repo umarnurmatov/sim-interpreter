@@ -6,6 +6,15 @@
 class InterpExecutor : public BaseExecutor
 {
 public:
+  enum Mode {
+    kLinear,
+    kCached
+  };
+
+  InterpExecutor(Mode mode = kCached)
+    : m_mode{ mode }
+  {}
+
   int run() override;
 
 private:
@@ -38,6 +47,7 @@ private:
 
   using BlkCache = std::unordered_map<Reg, BasicBlk>;
   BlkCache m_cache;
+  Mode m_mode;
 };
 
 #undef DECLARE_EXEC_FUNC_

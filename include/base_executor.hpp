@@ -1,7 +1,5 @@
 #pragma once
 
-#include <queue>
-
 #include "isa.hpp"
 #include "instr.hpp"
 #include "cpu_state.hpp"

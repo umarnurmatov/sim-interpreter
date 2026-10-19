@@ -4,7 +4,7 @@
 BUILD_DIR    ?= build
 SRC_DIR      = src
 INCLUDE_DIRS = include
-EXECUTABLE   = interpreter.x
+EXECUTABLE   = $(BUILD_DIR)/interpreter.x
 ASSEMBLER 	 = as.rb
 
 # includes SOURCES and TEST_SOURCES variable
@@ -22,6 +22,10 @@ TEST_EXECUTABLE  = $(BUILD_DIR)/test.x
 TEST_INCLUDE_DIR = tests
 
 include $(TEST_DIR)/sources.mk
+
+BENCH_DIR	= benchmarks
+BENCH_BIN = $(patsubst $(BENCH_DIR)/%.S,$(BUILD_DIR)/%.bin,$(wildcard $(BENCH_DIR)/*.S))
+$(info $(BENCH_BIN))
 
 # INCLUDE
 INCLUDE_DIRS_ALL = $(INCLUDE_DIRS)
@@ -56,9 +60,9 @@ override CFLAGS += -std=c++20 $(addprefix -I,$(INCLUDE_DIRS_ALL)) $(CPPFLAGS_WAR
 NODEPS = clean
 
 .PHONY: all
-all: $(BUILD_DIR)/$(EXECUTABLE)
+all: $(EXECUTABLE)
 
-$(BUILD_DIR)/$(EXECUTABLE): $(OBJS)
+$(EXECUTABLE): $(OBJS)
 	@echo -n Linking $@...
 	@$(CC) $(CFLAGS) -o $@ $^ 
 	@echo done
@@ -74,7 +78,7 @@ $(DEPS): $(BUILD_DIR)/%.d: $(SRC_DIR)/%.cpp
 	@$(CC) -E $(CFLAGS) $< -MM -MT $(@:.d=.o) > $@
 
 .PHONY: run
-run: $(BUILD_DIR)/$(EXECUTABLE)
+run: $(EXECUTABLE)
 	@./$<
 
 .PHONY: test
@@ -92,6 +96,16 @@ $(BUILD_DIR)/%.bin: $(TEST_DATA_DIR)/%.S $(ASSEMBLER)
 	@mkdir -p $(BUILD_DIR)
 	@ruby $(ASSEMBLER) $< $@
 	@echo done
+
+.PHONY: bench
+bench: $(BENCH_BIN)
+
+$(BENCH_BIN): $(BUILD_DIR)/%.bin: $(BENCH_DIR)/%.S
+	@ruby as.rb $^ $@
+	@hyperfine -w 1 -r 5 \
+		"./$(EXECUTABLE) --mode=int $@" \
+		"./$(EXECUTABLE) --mode=int-cached $@" \
+		"./$(EXECUTABLE) --mode=thread $@" 
 
 .PHONY: clean
 clean:

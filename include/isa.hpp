@@ -18,7 +18,7 @@ constexpr std::size_t kRegWidth  = sizeof(Reg) * 8;
 constexpr std::size_t kWordWidth = sizeof(Word) * 8;
 
 constexpr std::size_t kNumRegs       = 32;
-constexpr std::size_t kRamSize       = 1024;
+constexpr std::size_t kRamSize       = 64 * 1024;
 constexpr std::size_t kSyscallArgCnt = 8;
 constexpr std::size_t kInstrCnt      = 15;
 

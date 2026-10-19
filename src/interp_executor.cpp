@@ -9,18 +9,23 @@ int InterpExecutor::run()
 
   while (!halted) {
     try {
-      BasicBlk blk;
-
-      if (auto cache_it = m_cache.find(pc());
-          cache_it != m_cache.end()) {
-        blk = cache_it->second;
-        exec_block(blk);
-        continue;
+      if (m_mode == kLinear) {
+        exec(decode(fetch()));
       }
-      
-      Reg pc_begin_blk = prefetch_basic_block(blk);
-      m_cache[pc_begin_blk] = blk;
-      exec_block(blk);
+      else if (m_mode == kCached) {
+        BasicBlk blk;
+
+        if (auto cache_it = m_cache.find(pc());
+            cache_it != m_cache.end()) {
+          blk = cache_it->second;
+          exec_block(blk);
+          continue;
+        }
+        
+        Reg pc_begin_blk = prefetch_basic_block(blk);
+        m_cache[pc_begin_blk] = blk;
+        exec_block(blk);
+      }
     }
     catch (const SyscallTrap &trap) {
       switch (trap.num) {

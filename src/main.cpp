@@ -33,11 +33,13 @@ int main(int argc, char* argv[])
     auto mode = opts_parsed["mode"].as<std::string>();
 
     if (mode == "int") 
-      executor = new InterpExecutor{};
+      executor = new InterpExecutor{InterpExecutor::kLinear};
+    else if (mode == "int-cached")
+      executor = new InterpExecutor{InterpExecutor::kCached};
     else if (mode == "thread")
       executor = new ThreadExecutor{};
     else {
-      std::cerr << "mode = <int, thread>" << std::endl;
+      std::cerr << "mode = <int, int-cached, thread>" << std::endl;
       return EXIT_FAILURE;
     }
     
