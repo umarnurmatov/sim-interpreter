@@ -1,0 +1,222 @@
+@startuml
+package [std] as C_0000140814599380622978 {
+class "vector<std::byte>" as C_0007627143235397414659
+class C_0007627143235397414659 {
+__
+}
+class "array<std::uint8_t,Isa::kRamSize>" as C_0007944442012874430760
+class C_0007944442012874430760 {
+__
+}
+class "array<Reg,Isa::kSyscallArgCnt>" as C_0002091681562207795876
+class C_0002091681562207795876 {
+__
+}
+class "vector<Instr>" as C_0016423108027139286195
+class C_0016423108027139286195 {
+__
+}
+class "unordered_map<Reg,std::vector<Instr>>" as C_0010585670573968451765
+class C_0010585670573968451765 {
+__
+}
+class "array<void (ThreadExecutor::*)(Instr),Isa::kInstrCnt + 1>" as C_0009314726363292146830
+class C_0009314726363292146830 {
+__
+}
+}
+class "MemoryType<T>" as C_0010636550233780210344
+class C_0010636550233780210344 <<concept>> {
+}
+package [Isa] as C_0012725212660224058550 {
+enum "Registers" as C_0007272978609653862512
+enum C_0007272978609653862512 {
+x0
+x1
+x2
+x3
+x4
+x5
+x6
+x7
+x8
+x9
+x10
+x11
+x12
+x13
+x14
+x15
+x16
+x17
+x18
+x19
+x20
+x21
+x22
+x23
+x24
+x25
+x26
+x27
+x28
+x29
+x30
+x31
+}
+enum "SyscallCodes" as C_0017795091142642180932
+enum C_0017795091142642180932 {
+kSyscallExit
+}
+}
+enum "Opcode" as C_0013792669283431707361
+enum C_0013792669283431707361 {
+kUnknown
+kBdep
+kNor
+kCls
+kSyscall
+kAdd
+kSsat
+kBeq
+kLd
+kCbit
+kJ
+kAddi
+kJalr
+kSt
+kStp
+kLi
+}
+class "InstrEncoding" as C_0002713991076608138433
+class C_0002713991076608138433 {
+__
+}
+class "InstrEncoding::InstrFieldEncoding" as C_0005363960761004319457
+class C_0005363960761004319457 {
+__
++offset : std::uint8_t
++width : std::uint8_t
+}
+class "Instr" as C_0015816350534833342570
+class C_0015816350534833342570 {
+__
++f1 : Byte
++f2 : Byte
++f3 : Word
+}
+class "Memory" as C_0001770844176691399465
+class C_0001770844176691399465 {
+-check_alignment(std::size_t addr) const : void
+-check_bounds<MemoryType T>(std::size_t addr) const : void
++load<MemoryType T>(std::size_t addr) const : T
++load_bytes(std::size_t addr, const std::vector<std::byte> & bytes) : void
++store<MemoryType T>(std::size_t addr, T value) : void
+__
+}
+class "CpuState" as C_0008981452572194328620
+class C_0008981452572194328620 {
++CpuState() : void
+..
++get_reg(std::size_t reg) : Reg
++increment_pc(Word incr) : void
++mem() : Memory &
++pc() : Reg
++set_pc(Reg pc_new) : void
++set_reg(std::size_t reg, Reg val) : void
+__
+-m_gpr : Reg[32]
+-m_pc : Reg
+}
+class "SyscallTrap" as C_0014161100038301844599
+class C_0014161100038301844599 {
+__
++num : Reg
+}
+abstract "BaseExecutor" as C_0007444435720335218013
+abstract C_0007444435720335218013 {
++BaseExecutor() : void
++~BaseExecutor() : void
+..
+#decode(Word enc) : Instr
+#fetch() : Word
++load_binary(const std::vector<std::byte> & bin) : void
+#pc() const : Reg
+{abstract} +run() = 0 : int
+__
+}
+class "InterpExecutor" as C_0001729202884946099394
+class C_0001729202884946099394 {
+-exec(Instr inst) : void
+-exec_add(Instr inst) : void
+-exec_addi(Instr inst) : void
+-exec_bdep(Instr inst) : void
+-exec_beq(Instr inst) : void
+-exec_block(BasicBlk & blk) : void
+-exec_cbit(Instr inst) : void
+-exec_cls(Instr inst) : void
+-exec_j(Instr inst) : void
+-exec_jalr(Instr inst) : void
+-exec_ld(Instr inst) : void
+-exec_li(Instr inst) : void
+-exec_nor(Instr inst) : void
+-exec_ssat(Instr inst) : void
+-exec_st(Instr inst) : void
+-exec_stp(Instr inst) : void
+-exec_syscall(Instr inst) : void
+-prefetch_basic_block(BasicBlk & blk) : Reg
++run() : int
+__
+}
+class "ThreadExecutor" as C_0004939126458235990842
+class C_0004939126458235990842 {
++ThreadExecutor() : void
+..
+-exec(Instr inst) : void
+-exec_add(Instr inst) : void
+-exec_addi(Instr inst) : void
+-exec_bdep(Instr inst) : void
+-exec_beq(Instr inst) : void
+-exec_cbit(Instr inst) : void
+-exec_cls(Instr inst) : void
+-exec_j(Instr inst) : void
+-exec_jalr(Instr inst) : void
+-exec_ld(Instr inst) : void
+-exec_li(Instr inst) : void
+-exec_nor(Instr inst) : void
+-exec_ssat(Instr inst) : void
+-exec_st(Instr inst) : void
+-exec_stp(Instr inst) : void
+-exec_syscall(Instr inst) : void
+-exec_unknown(Instr inst) : void
++run() : int
+__
+}
+C_0016423108027139286195 ..> C_0015816350534833342570
+C_0010585670573968451765 ..> C_0016423108027139286195
+C_0009314726363292146830 ..> C_0004939126458235990842
+C_0009314726363292146830 ..> C_0015816350534833342570
+C_0002713991076608138433 o-- C_0005363960761004319457 : +f1
+C_0002713991076608138433 o-- C_0005363960761004319457 : +f2
+C_0002713991076608138433 o-- C_0005363960761004319457 : +f3
+C_0002713991076608138433 o-- C_0005363960761004319457 : +f4
+C_0005363960761004319457 --+ C_0002713991076608138433
+C_0015816350534833342570 o-- C_0013792669283431707361 : +opc
+C_0001770844176691399465 ..> C_0007627143235397414659
+C_0001770844176691399465 o-- C_0007944442012874430760 : -m_ram
+C_0008981452572194328620 o-- C_0001770844176691399465 : -m_mem
+C_0014161100038301844599 o-- C_0002091681562207795876 : +args
+C_0007444435720335218013 ..> C_0007627143235397414659
+C_0007444435720335218013 ..> C_0015816350534833342570
+C_0007444435720335218013 --> C_0008981452572194328620 : #m_cpu
+C_0001729202884946099394 ..> C_0016423108027139286195
+C_0001729202884946099394 ..> C_0015816350534833342570
+C_0001729202884946099394 o-- C_0010585670573968451765 : -m_cache
+C_0007444435720335218013 <|-- C_0001729202884946099394
+C_0004939126458235990842 ..> C_0015816350534833342570
+C_0004939126458235990842 o-- C_0009314726363292146830 : -m_handlers
+C_0007444435720335218013 <|-- C_0004939126458235990842
+
+'Generated with clang-uml, version 0.6.3-66-gff9ffdb
+'LLVM version clang version 23.1.1
+@enduml

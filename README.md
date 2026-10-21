@@ -2,9 +2,7 @@
 
 ISA description is available in `docs/isa.pdf`. This project includes assembler and simulator.
 
-## Simulator
-
-### Prerequisites
+## Prerequisites
 
 | Packet                                          | Version |
 | ----------------------------------------------- | ------- |
@@ -12,10 +10,13 @@ ISA description is available in `docs/isa.pdf`. This project includes assembler 
 | g++                                             | >= 12   |
 | gtest                                           |         |
 | ruby                                            | >= 3.4  |
+| [rice](https://github.com/ruby-rice/rice)       | = 4.12.0|
 | [cxxopts](https://github.com/jarro2783/cxxopts) | = 3.3.1 |
 | [elfio](https://github.com/serge1/ELFIO)        | = 3.12  |
 
-`cxxxopts` and `elfio` are managed via `FetchContent`, so there is no need to install them manually.
+`rice`, `cxxxopts` and `elfio` are managed via `FetchContent`, so there is no need to install them manually.
+
+## Simulator
 
 ### Build
 
@@ -30,15 +31,25 @@ cmake --build build
 ```
 For available option list, run with `--help`.
 
-## Assembler 
+`input` is an ELF object file, see Assembler section.
+
+## Assembler
+
+Assembler produces an ELF object file that's later can be passed to simulator.
+
+### Pre-run
+
+Assembler uses Ruby-to-C++ binding to custom [elfio](https://github.com/serge1/ELFIO) library
+and it's neccessary to build it (see Simulator/Build section) before using assembler.
+
 ### Run
 ```sh
-ruby as.rb <asm> <output>
+ruby -I build/src/elfio_ext as.rb <asm> <output>
 ```
 
 ## Tests
 Project includes system tests for every ISA instruction.
-To build & run them, use:
+To run them, build the project first (or just target `sim_test`) and then
 ```sh
 cd build
 ctest

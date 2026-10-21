@@ -1,10 +1,14 @@
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
-set(TEST_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-data")
+set(TEST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/test-data)
 add_custom_target(test_binaries
-  COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/prepare.sh"
-  "${PROJECT_SOURCE_DIR}" "${TEST_BINARY_DIR}"
+  COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/prepare.sh
+  "${PROJECT_SOURCE_DIR}" "${TEST_BINARY_DIR}" "${CMAKE_BINARY_DIR}/src/elfio_ext"
+)
+
+add_dependencies(test_binaries
+  elfio_ext
 )
 
 add_executable(sim_test 
