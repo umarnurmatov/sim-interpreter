@@ -69,3 +69,5 @@ html/
 # Logs
 log/
 
+# compile commands
+compile_commands.json
