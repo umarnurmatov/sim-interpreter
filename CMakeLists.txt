@@ -7,7 +7,8 @@ enable_testing()
   
 add_subdirectory(flags)
 add_subdirectory(deps)
-add_subdirectory(src)
+add_subdirectory(src/sim)
+add_subdirectory(src/elfio_ext)
 add_subdirectory(tests)
 
 add_executable(sim.x 
@@ -19,4 +20,3 @@ target_link_libraries(sim.x
     sim_flags
     sim_static
 )
-
