@@ -1,3 +1,5 @@
+require 'elfio_ext'
+
 INSTR_ENCS = {
   bdep: {
     opcode: { val: 0b011110, width: 6, offst: 0 },
@@ -139,6 +141,7 @@ class Assembler
     @buf = []
     @regs = {}
     @labels = {}
+    @elf_writer = Elfio::Writer.new
 
     REGISTER_CNT.times do |i|
       @regs["x#{i}"] = i
@@ -250,10 +253,26 @@ private
   end
 
 public
-  def write_bin(path)
-    File.open(path, "wb") do |f|
-      @buf.each { |cmd| f.write([cmd].pack("V")) }
-    end
+  def write_elf(path)
+    @elf_writer.create(Elfio::ELFCLASS32, Elfio::ELFDATA2LSB)
+    @elf_writer.set_type(Elfio::ET_EXEC)
+    @elf_writer.set_entry(0)
+    text = @elf_writer.sections.add('.text')
+    text.set_type(Elfio::SHT_PROGBITS)
+    text.set_flags(Elfio::SHF_ALLOC | Elfio::SHF_EXECINSTR)
+    text.set_addr_align(4)
+    text.set_address(0)
+    text.set_data(@buf.pack("V*"))
+
+    segment = @elf_writer.segments.add
+    segment.set_type(Elfio::PT_LOAD)
+    segment.set_flags(Elfio::PF_R | Elfio::PF_X)
+    segment.set_align(4)
+    segment.set_virtual_address(0)
+    segment.set_physical_address(0)
+    segment.add_section_index(text.get_index, text.get_addr_align)
+
+    @elf_writer.save(path)
   end
 
 private
@@ -266,4 +285,5 @@ end
 as = Assembler.new
 as.collect_labels(ARGV[0])
 as.assemble(ARGV[0])
-as.write_bin(ARGV[1])
+as.write_elf(ARGV[1])
+
