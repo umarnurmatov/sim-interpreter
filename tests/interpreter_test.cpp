@@ -27,46 +27,46 @@ TEST_P(ProgramTestParametrizedFixture, Result)
 }
 
 INSTANTIATE_TEST_SUITE_P(FibonacciTest, ProgramTestParametrizedFixture, 
-  testing::Values(TEST_BUILD_DIR "/test_fibonacci.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_fibonacci.o"));
 
 INSTANTIATE_TEST_SUITE_P(BdepTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_bdep.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_bdep.o"));
 
 INSTANTIATE_TEST_SUITE_P(AddTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_add.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_add.o"));
 
 INSTANTIATE_TEST_SUITE_P(NorTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_nor.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_nor.o"));
 
 INSTANTIATE_TEST_SUITE_P(ClsTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_cls.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_cls.o"));
 
 INSTANTIATE_TEST_SUITE_P(SsatTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_ssat.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_ssat.o"));
 
 INSTANTIATE_TEST_SUITE_P(CbitTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_cbit.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_cbit.o"));
 
 INSTANTIATE_TEST_SUITE_P(AddiTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_addi.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_addi.o"));
 
 INSTANTIATE_TEST_SUITE_P(LiTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_li.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_li.o"));
 
 INSTANTIATE_TEST_SUITE_P(BeqTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_beq.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_beq.o"));
 
 INSTANTIATE_TEST_SUITE_P(JTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_j.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_j.o"));
 
 INSTANTIATE_TEST_SUITE_P(JalrTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_jalr.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_jalr.o"));
 
 INSTANTIATE_TEST_SUITE_P(LdTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_ld.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_ld.o"));
 
 INSTANTIATE_TEST_SUITE_P(StTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_st.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_st.o"));
 
 INSTANTIATE_TEST_SUITE_P(StpTest, ProgramTestParametrizedFixture,
-  testing::Values(TEST_BUILD_DIR "/test_stp.bin"));
+  testing::Values(TEST_BUILD_DIR "/test_stp.o"));

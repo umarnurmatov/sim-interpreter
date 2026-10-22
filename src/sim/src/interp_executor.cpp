@@ -5,7 +5,7 @@
 int InterpExecutor::run()
 {  
   bool halted = false;
-  int exit_code = 0;
+  int exit_code = 1;
 
   while (!halted) {
     try {

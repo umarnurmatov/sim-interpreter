@@ -26,7 +26,7 @@ ThreadExecutor::ThreadExecutor()
 
 int ThreadExecutor::run()
 {
-  int exit_code = 0;
+  int exit_code = 1;
 
   try {
     exec(Instr{ .opc = Opcode::kUnknown });
