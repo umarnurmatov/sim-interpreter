@@ -11,9 +11,8 @@ public:
 
   virtual int run() = 0;
 
-  // loads binary to address 0 and resets pc
-  // @param bin binary instructions
-  void load_binary(const std::vector<std::byte> &bin);
+  void load_bytes(std::size_t addr, const char* bytes, 
+                  std::size_t size);
 
   virtual ~BaseExecutor();
 

@@ -1,9 +1,7 @@
 #include <gtest/gtest.h> 
 
-#include <fstream>
 #include "interp_executor.hpp"
-
-static int load_binary_file(BaseExecutor* executor, std::string filename);
+#include "loader.hpp"
 
 class InterpreterTestFixture : public testing::Test
 {
@@ -20,7 +18,8 @@ class ProgramTestParametrizedFixture : public InterpreterTestFixture,
 TEST_P(ProgramTestParametrizedFixture, Result)
 {
   const auto &bin_fname = GetParam();
-  ASSERT_EQ(load_binary_file(&intrp, bin_fname), 0) << "Could not load bin file";
+  int res = Loader::load_elf(&intrp, bin_fname);
+  ASSERT_EQ(res, 0) << "Could not load bin file";
 
   int exit_code = intrp.run();
 
@@ -71,25 +70,3 @@ INSTANTIATE_TEST_SUITE_P(StTest, ProgramTestParametrizedFixture,
 
 INSTANTIATE_TEST_SUITE_P(StpTest, ProgramTestParametrizedFixture,
   testing::Values(TEST_BUILD_DIR "/test_stp.bin"));
-
-static int load_binary_file(BaseExecutor* executor, std::string filename)
-{
-  std::ifstream file(filename, std::ios::binary | std::ios::ate);
-  if (!file.is_open()) {
-    std::cerr << "could not open file" << std::endl;
-    return 1;
-  }
-
-  const std::streamoff size = file.tellg();
-  std::vector<std::byte> bytes {static_cast<std::size_t>(size)};
-
-  file.seekg(std::ios::beg);
-  if (!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
-    std::cerr << "could not read file" << std::endl;
-    return 1;
-  }
-
-  executor->load_binary(bytes);
-
-  return 0;
-}

@@ -1,14 +1,12 @@
 #include <cstdlib>
 #include <iostream>
-#include <fstream>
 
 #include <cxxopts.hpp>
 
 #include "base_executor.hpp"
 #include "thread_executor.hpp"
 #include "interp_executor.hpp"
-
-static int load_binary_file(BaseExecutor* executor, std::string filename);
+#include "loader.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -45,7 +43,7 @@ int main(int argc, char* argv[])
     
     auto input = opts_parsed["input"].as<std::string>();
 
-    if (int res = load_binary_file(executor, input); res != 0)
+    if (int res = Loader::load_elf(executor, input); res != 0)
       return EXIT_FAILURE;
   }
   catch (const cxxopts::exceptions::exception& e)
@@ -54,6 +52,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
+  
   int exit_code = executor->run();
   std::cout << "exited with code " << exit_code << std::endl;
 
@@ -62,24 +61,3 @@ int main(int argc, char* argv[])
   return EXIT_SUCCESS;
 }
 
-static int load_binary_file(BaseExecutor* executor, std::string filename)
-{
-  std::ifstream file(filename, std::ios::binary | std::ios::ate);
-  if (!file.is_open()) {
-    std::cerr << "could not open file" << std::endl;
-    return 1;
-  }
-
-  const std::streamoff size = file.tellg();
-  std::vector<std::byte> bytes {static_cast<std::size_t>(size)};
-
-  file.seekg(std::ios::beg);
-  if (!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
-    std::cerr << "could not read file" << std::endl;
-    return 1;
-  }
-
-  executor->load_binary(bytes);
-
-  return 0;
-}

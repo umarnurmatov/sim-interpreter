@@ -112,8 +112,8 @@ Instr BaseExecutor::decode(Word enc)
 #undef GET_INSTR_IMM
 #undef GET_INSTR_REG3_REG2OFFS
 
-void BaseExecutor::load_binary(const std::vector<std::byte> &bin)
-{
-  m_cpu->mem().load_bytes(0, bin); 
-  m_cpu->set_pc(0);
+void BaseExecutor::load_bytes(std::size_t addr, const char* bytes, 
+                std::size_t size) {
+  m_cpu->mem().load_bytes(addr, bytes, size); 
+  // m_cpu->set_pc(0);
 }

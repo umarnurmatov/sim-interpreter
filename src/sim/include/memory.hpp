@@ -26,6 +26,14 @@ public:
     std::memcpy(m_ram.data() + addr, bytes.data(), sizeof(std::byte) * bytes.size());
   }
 
+  void load_bytes(std::size_t addr, const char* bytes, std::size_t size)
+  {
+    if (addr + size > m_ram.size() - 1)
+      throw std::runtime_error("memory: access out of bounds");
+
+    std::memcpy(m_ram.data() + addr, bytes, sizeof(char) * size);
+  }
+
 private:
   template <MemoryType T>
   void check_bounds(std::size_t addr) const 
