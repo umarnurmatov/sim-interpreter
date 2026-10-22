@@ -10,11 +10,11 @@ ISA description is available in `docs/isa.pdf`. This project includes assembler 
 | g++                                             | >= 12   |
 | gtest                                           |         |
 | ruby                                            | >= 3.4  |
-| [rice](https://github.com/ruby-rice/rice)       | = 4.12.0|
+| [Rice](https://github.com/ruby-rice/rice)       | = 4.12.0|
 | [cxxopts](https://github.com/jarro2783/cxxopts) | = 3.3.1 |
-| [elfio](https://github.com/serge1/ELFIO)        | = 3.12  |
+| [ELFIO](https://github.com/serge1/ELFIO)        | = 3.12  |
 
-`rice`, `cxxxopts` and `elfio` are managed via `FetchContent`, so there is no need to install them manually.
+`Rice`, `cxxxopts` and `ELFIO` are managed via `FetchContent`, so there is no need to install them manually.
 
 ## Simulator
 
@@ -39,7 +39,7 @@ Assembler produces an ELF object file that's later can be passed to simulator.
 
 ### Pre-run
 
-Assembler uses Ruby-to-C++ binding to custom [elfio](https://github.com/serge1/ELFIO) library
+Assembler uses custom Ruby bindings to [ELFIO](https://github.com/serge1/ELFIO) library (through [Rice](https://github.com/ruby-rice/rice) library)
 and it's neccessary to build it (see Simulator/Build section) before using assembler.
 
 ### Run
