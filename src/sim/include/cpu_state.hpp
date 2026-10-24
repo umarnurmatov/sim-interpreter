@@ -37,4 +37,3 @@ struct SyscallTrap
   std::array<Reg, Isa::kSyscallArgCnt> args;
 };
 
-

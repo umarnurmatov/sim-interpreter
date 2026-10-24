@@ -18,8 +18,18 @@ FetchContent_Declare(
   GIT_TAG        4.12.0
 )
 
+FetchContent_Declare(
+  asmjit
+  GIT_REPOSITORY https://github.com/asmjit/asmjit.git
+)
+
+set(ASMJIT_NO_FOREIGN TRUE)
+set(ASMJIT_EMBED TRUE)
+set(ASMJIT_BUILD_RELEASE TRUE)
+
 FetchContent_MakeAvailable(
   cxxopts 
   elfio
   rice
+  asmjit
 )
