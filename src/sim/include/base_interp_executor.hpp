@@ -1,19 +1,10 @@
 #include "base_executor.hpp"
-#include <unordered_map>
 
 #define DECLARE_EXEC_FUNC_(cmd) void exec_##cmd(Instr inst)
 
 class BaseInterpExecutor : public BaseExecutor
 {
 protected:
-  using BasicBlk = struct std::vector<Instr>;
-
-  // @param blk ref to blk where instruction will be stored
-  // @param max_instr_cnt maximum instruction cnt in block
-  // @return pc of the beginning of the block
-  Reg prefetch_basic_block(BasicBlk& blk);
-
-  void exec_block(BasicBlk& blk);
 
   void exec(Instr inst);
 
@@ -32,9 +23,6 @@ protected:
   DECLARE_EXEC_FUNC_(st);
   DECLARE_EXEC_FUNC_(stp);
   DECLARE_EXEC_FUNC_(li);
-
-  using BlkCache = std::unordered_map<Reg, BasicBlk>;
-  BlkCache m_cache;
 };
 
-#undef DECLARE_EXEC_
+#undef DECLARE_EXEC_FUNC_

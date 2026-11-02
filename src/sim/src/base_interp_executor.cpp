@@ -2,25 +2,6 @@
 
 #include "bitops.hpp"
 
-Reg BaseInterpExecutor::prefetch_basic_block(BasicBlk &blk)
-{
-  Reg pc_begin_blk = pc();
-  Instr instr { .opc = Opcode::kUnknown };
-  while (!IS_CONTROL_INSTRUCTION(instr)) {
-    instr = decode(fetch());
-    blk.push_back(instr);
-    m_cpu->increment_pc(sizeof(Word));
-  }
-  m_cpu->set_pc(pc_begin_blk);
-  return pc_begin_blk;
-}
-
-void BaseInterpExecutor::exec_block(BasicBlk& blk)
-{
-  for(auto& instr : blk)
-    exec(instr);
-}
-
 #define OPC_TO_INT(opc) \
   (static_cast<std::uint8_t>(opc))
 
