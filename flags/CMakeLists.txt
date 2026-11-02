@@ -7,6 +7,8 @@ target_compile_features(sim_flags
 
 target_compile_options(sim_flags
   INTERFACE
+    -std=c++20
+
     -fdiagnostics-color=always
 
     -Wno-interference-size
@@ -43,6 +45,8 @@ target_compile_options(sim_flags
 
 target_link_options(sim_flags
   INTERFACE
+    -std=c++20
+
     -fdiagnostics-color=always
 
     -Wall

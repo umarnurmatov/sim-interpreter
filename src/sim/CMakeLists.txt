@@ -4,6 +4,7 @@ set(SRCS
   src/instr.cpp
   src/interp_executor.cpp
   src/thread_executor.cpp
+  src/jit_executor.cpp
   src/loader.cpp)
 
 add_library(sim_static 
@@ -19,5 +20,6 @@ target_link_libraries(sim_static
     sim_flags
     cxxopts::cxxopts
     elfio::elfio
+    asmjit::asmjit
 )
 
