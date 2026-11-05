@@ -67,10 +67,7 @@ constexpr InstrEncoding kInstrEnc[] =
 struct Instr
 {
   Opcode opc{};
-
-  Byte f1{},
-       f2{};
-  Word f3{}; // (f3 << width_f4) | f4
+  Word f1{}, f2{}, f3{}, f4{};
 };
 
 Opcode get_opcode(Word enc);

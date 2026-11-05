@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "isa.hpp"
 #include "memory.hpp"
 
@@ -11,9 +13,17 @@ public:
     : m_gpr {}, m_pc {0}
   {}
 
-  void set_reg(std::size_t reg, Reg val) { m_gpr[reg] = val; }
+  void set_reg(std::size_t reg, Reg val) 
+  {
+    assert(reg < Isa::kInstrCnt);
+    m_gpr[reg] = val; 
+  }
 
-  Reg get_reg(std::size_t reg) { return m_gpr[reg]; }
+  const Reg& get_reg(std::size_t reg) 
+  { 
+    assert(reg < Isa::kInstrCnt); 
+    return m_gpr[reg]; 
+  }
 
   void increment_pc(Word incr) { 
     m_pc += static_cast<Reg>(incr);
@@ -21,7 +31,7 @@ public:
 
   void set_pc(Reg pc_new) { m_pc = pc_new; }
 
-  Reg pc() { return m_pc; }
+  const Reg& pc() { return m_pc; }
 
   Memory& mem() { return m_mem; }
 

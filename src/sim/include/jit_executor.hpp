@@ -19,6 +19,20 @@ public:
 private:
   using JitBlk = void (*)(void);
 
+  struct JitCompilerData {
+    JitCompilerData(asmjit::x86::Compiler& cc_);
+
+    asmjit::x86::Compiler& cc;
+
+    // FIXME rename tmp to rd, rs, ...
+    asmjit::x86::Gp tmp1;
+    asmjit::x86::Gp tmp2;
+    asmjit::x86::Gp tmp3;
+
+    // for PC folding optimization
+    asmjit::x86::Gp pc_inc; 
+  };
+
   struct BasicBlk {
     std::vector<Instr> instructions;
     std::size_t exec_cnt;
@@ -27,11 +41,21 @@ private:
   JitBlk translate(const BasicBlk& blk);
 
   void translate_instr(const Instr& inst,
-                       const asmjit::x86::Compiler& cc);
+                       const JitCompilerData& cdat);
 
-#define DECLARE_TRANSLATE_FUNC_(cmd)                    \
-  void translate_##cmd(Instr inst,                      \
-                       const asmjit::x86::Compiler& cc)
+  __attribute__((always_inline)) 
+  asmjit::x86::Mem reg_to_dword_ptr(std::size_t reg);
+
+  __attribute__((always_inline)) 
+  asmjit::x86::Mem pc_to_dword_ptr();
+
+  __attribute__((always_inline)) 
+  asmjit::x86::Mem mem_to_dword_ptr();
+
+
+#define DECLARE_TRANSLATE_FUNC_(cmd)                \
+  void translate_##cmd(const Instr& inst,           \
+                       const JitCompilerData& cdat)
 
   DECLARE_TRANSLATE_FUNC_(bdep);
   DECLARE_TRANSLATE_FUNC_(nor);

@@ -44,9 +44,8 @@ Word BaseExecutor::fetch()
   std::uint8_t opc = OPC_TO_INT(Opcode::kStp);    \
   inst.f1 = GET_FIELD(enc, kInstrEnc[opc].f1);    \
   inst.f2 = GET_FIELD(enc, kInstrEnc[opc].f2);    \
-  Word f3 = GET_FIELD(enc, kInstrEnc[opc].f3);    \
-  Word f4 = GET_FIELD(enc, kInstrEnc[opc].f4);    \
-  inst.f3 = (f3 << kInstrEnc[opc].f4.width) | f4; \
+  inst.f3 = GET_FIELD(enc, kInstrEnc[opc].f3);    \
+  inst.f4 = GET_FIELD(enc, kInstrEnc[opc].f4);    \
 
 Instr BaseExecutor::decode(Word enc)
 {
