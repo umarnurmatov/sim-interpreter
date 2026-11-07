@@ -1,6 +1,7 @@
 #include "thread_executor.hpp"
 
 #include "bitops.hpp"
+#include "syscall.hpp"
 
 ThreadExecutor::ThreadExecutor()
   : m_handlers {
@@ -32,13 +33,7 @@ int ThreadExecutor::run()
     exec(Instr{ .opc = Opcode::kUnknown });
   }
   catch (const SyscallTrap &trap) {
-    switch (trap.num) {
-      case Isa::kSyscallExit:
-        exit_code = trap.args[0];
-        break;
-      default:
-        throw std::runtime_error("interpreter: unknown syscall");
-    }
+    exit_code = handle_syscall(trap).exit_code;
   }
 
   return exit_code;

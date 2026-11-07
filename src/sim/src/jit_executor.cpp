@@ -1,8 +1,13 @@
 #include "jit_executor.hpp"
+
+#include <stdexcept>
+
 #include "asmjit/core/code_holder.h"
-#include "asmjit/x86/x86_assembler.h"
 #include "asmjit/x86/x86_operand.h"
+
 #include "bitops.hpp"
+#include "cpu_state.hpp"
+#include "syscall.hpp"
 
 JitExecutor::JitExecutor(std::size_t threshold)
   : m_threshold{ threshold }
@@ -12,46 +17,77 @@ JitExecutor::JitExecutor(std::size_t threshold)
 JitExecutor::JitCompilerData::JitCompilerData(asmjit::x86::Compiler& cc_)
   : cc { cc_ }
 {
+}
+
+void JitExecutor::JitCompilerData::init()
+{
   tmp1 = cc.new_gp32();
   tmp2 = cc.new_gp32();
   tmp3 = cc.new_gp32();
 
-  pc_inc = cc.new_gp32();
+  pc_inc   = cc.new_gp32();
+  ram_addr = cc.new_gp64();
+
   cc.mov(pc_inc, 0);
 }
 
 int JitExecutor::run()
 {
   bool halted = false;
-  int exit_code = 1;
+  int exit_code = 0;
 
   while (!halted) {
-    auto bt_cache_it = m_bt_cache.find(pc());
-    if (bt_cache_it != m_bt_cache.end()) {
-      bt_cache_it->second();
-      continue;
-    }
+    try {
+      auto bt_cache_it = m_bt_cache.find(pc());
+      if (bt_cache_it != m_bt_cache.end()) {
+        handle_blk_on_exit(bt_cache_it->second());
+        continue;
+      }
 
-    auto bb_cache_it = m_bb_cache.find(pc());
+      auto bb_cache_it = m_bb_cache.find(pc());
 
-    if (bb_cache_it == m_bb_cache.end()) {
-      BasicBlk blk;
-      prefetch_basic_block(blk);
-      bb_cache_it = m_bb_cache.insert({ pc(), blk }).first;
-    }
+      if (bb_cache_it == m_bb_cache.end()) {
+        BasicBlk blk;
+        prefetch_basic_block(blk);
+        bb_cache_it = m_bb_cache.insert({ pc(), blk }).first;
+      }
 
-    if (bb_cache_it->second.exec_cnt >= m_threshold) {
-      JitBlk code = translate(bb_cache_it->second);
-      m_bt_cache[pc()] = code;
-      code();
+      if (bb_cache_it->second.exec_cnt >= m_threshold) {
+        JitBlk blk = translate(bb_cache_it->second);
+        m_bt_cache[pc()] = blk;
+        handle_blk_on_exit(blk());
+      }
+      else {
+        bb_cache_it->second.exec_cnt++;
+        interpret(bb_cache_it->second);
+      }
     }
-    else {
-      bb_cache_it->second.exec_cnt++;
-      interpret(bb_cache_it->second);
+    catch (const SyscallTrap& trap) {
+      SyscallRet ret = handle_syscall(trap);
+      exit_code = ret.exit_code;
+      halted = ret.halted;
     }
   }
 
   return exit_code;
+}
+
+void JitExecutor::handle_blk_on_exit(BlkExitCode blk_exit_code)
+{
+  switch (blk_exit_code) {
+    case kExitSuccess: break;
+    case kSyscall: {
+      SyscallTrap trap {};
+      trap.num = m_cpu->get_reg(Isa::x8);
+      for (std::size_t i = 0; i < Isa::kSyscallArgCnt; ++i)
+        trap.args[i] = m_cpu->get_reg(i);
+      throw trap;
+    }
+    case kMemoryMisalignedAddr:
+      throw std::runtime_error("memory adress misaligned");
+
+    default: break;
+  }
 }
 
 JitExecutor::JitBlk JitExecutor::translate(const BasicBlk& blk)
@@ -64,16 +100,20 @@ JitExecutor::JitBlk JitExecutor::translate(const BasicBlk& blk)
 
   JitCompilerData compiler_dat{ cc };
 
-  cc.add_func(asmjit::FuncSignature::build<void>());
+  cc.add_func(asmjit::FuncSignature::build<BlkExitCode>());
+  compiler_dat.init();
 
   for (const auto& instr : blk.instructions)
     translate_instr(instr, compiler_dat);
+
+  cc.end_func();
+  cc.finalize();
 
   JitBlk fn = nullptr;
 
   asmjit::Error cc_err = m_runtime.add(&fn, &code);
   if (cc_err != asmjit::Error::kOk) {
-    // TODO
+    throw std::runtime_error("translation failed");
   }
 
   return fn;
@@ -123,11 +163,11 @@ asmjit::x86::Mem JitExecutor::pc_to_dword_ptr()
   return asmjit::x86::dword_ptr(pc_ptr);
 }
 
-asmjit::x86::Mem JitExecutor::mem_to_dword_ptr()
+asmjit::x86::Mem JitExecutor::ram_base_to_dword_ptr()
 {
-  std::size_t pc_ptr = reinterpret_cast<std::size_t>(
-                          &m_cpu->mem());
-  return asmjit::x86::dword_ptr(pc_ptr);
+  std::size_t mem_ptr = reinterpret_cast<std::size_t>(
+                          m_cpu->mem().get_data());
+  return asmjit::x86::dword_ptr(mem_ptr);
 }
 
 #define OPC_TO_INT(opc) \
@@ -139,7 +179,7 @@ void JitExecutor::translate_bdep(const Instr& inst,
   cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f1));
   cdat.cc.mov(cdat.tmp2, reg_to_dword_ptr(inst.f2));
   cdat.cc.pdep(cdat.tmp3, cdat.tmp1, cdat.tmp2);
-  cdat.cc.mov(reg_to_dword_ptr(inst.f3), cdat.tmp1);
+  cdat.cc.mov(reg_to_dword_ptr(inst.f3), cdat.tmp3);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
 }
@@ -160,17 +200,21 @@ void JitExecutor::translate_cls(const Instr& inst,
                                 const JitCompilerData& cdat)
 {
   cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f1));
+  cdat.cc.neg(cdat.tmp1);
   cdat.cc.lzcnt(cdat.tmp1, cdat.tmp1);
   cdat.cc.mov(reg_to_dword_ptr(inst.f2), cdat.tmp1);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
 }
 
-// FIXME
 void JitExecutor::translate_syscall(const Instr& inst,
                                     const JitCompilerData& cdat)
 {
+  cdat.cc.mov(cdat.tmp3, pc_to_dword_ptr());
+  cdat.cc.add(cdat.tmp3, cdat.pc_inc);
 
+  cdat.cc.mov(cdat.tmp1, kSyscall); 
+  cdat.cc.ret(cdat.tmp1);
 }
 
 void JitExecutor::translate_add(const Instr& inst,
@@ -187,17 +231,26 @@ void JitExecutor::translate_add(const Instr& inst,
 void JitExecutor::translate_ssat(const Instr& inst,
                                 const JitCompilerData& cdat)
 {
-  cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f2));
-  cdat.cc.mov(cdat.tmp2, reg_to_dword_ptr(inst.f3));
+  // if (inst.f3 == 0 || inst.f3 >= Isa::kWordWidth)
+  //   throw std::runtime_error("translate_ssat: invalid saturation width");
 
-  // FIXME 
+  const auto magnitude = std::int32_t{1} << (inst.f3 - 1);
+  const auto lower = -magnitude;
+  const auto upper = magnitude - 1;
 
-  cdat.cc.mov(reg_to_dword_ptr(inst.f1), cdat.tmp1);
+  // just dissasembled sng_satr()
+  cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f1));
+  cdat.cc.mov(cdat.tmp2, lower);
+  cdat.cc.cmp(cdat.tmp1, cdat.tmp2);
+  cdat.cc.cmovl(cdat.tmp1, cdat.tmp2);
+  cdat.cc.mov(cdat.tmp3, upper);
+  cdat.cc.cmp(cdat.tmp1, cdat.tmp3);
+  cdat.cc.cmovg(cdat.tmp1, cdat.tmp3);
+  cdat.cc.mov(reg_to_dword_ptr(inst.f2), cdat.tmp1);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
 }
 
-// FIXME
 void JitExecutor::translate_beq(const Instr& inst,
                                 const JitCompilerData& cdat)
 {
@@ -205,7 +258,7 @@ void JitExecutor::translate_beq(const Instr& inst,
     inst.f3 << 2,
     kInstrEnc[OPC_TO_INT(Opcode::kBeq)].f3.width + 2);
 
-  asmjit::Label branch_taken{};
+  asmjit::Label branch_taken = cdat.cc.new_label();
   
   // propagated increase of PC
   cdat.cc.mov(cdat.tmp3, pc_to_dword_ptr());
@@ -218,15 +271,15 @@ void JitExecutor::translate_beq(const Instr& inst,
 
   cdat.cc.add(cdat.tmp3, sizeof(Word));
   cdat.cc.mov(pc_to_dword_ptr(), cdat.tmp3);
-  cdat.cc.ret();
+  cdat.cc.mov(cdat.tmp1, kExitSuccess);
+  cdat.cc.ret(cdat.tmp1);
 
   cdat.cc.bind(branch_taken);
   
-  cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f2));
-  cdat.cc.add(cdat.tmp1, ofst);
-  cdat.cc.add(cdat.tmp3, cdat.tmp1);
+  cdat.cc.add(cdat.tmp3, ofst);
   cdat.cc.mov(pc_to_dword_ptr(), cdat.tmp3);
-  cdat.cc.ret();
+  cdat.cc.mov(cdat.tmp1, kExitSuccess);
+  cdat.cc.ret(cdat.tmp1);
 }
 
 void JitExecutor::translate_ld(const Instr& inst,
@@ -238,12 +291,20 @@ void JitExecutor::translate_ld(const Instr& inst,
 
   cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f2));
   cdat.cc.add(cdat.tmp1, ofst); // base + offst
-  cdat.cc.mov(cdat.tmp2, mem_to_dword_ptr()); // mem start
-  cdat.cc.add(cdat.tmp2, cdat.tmp1); // addr
 
-  // FIXME raise exception
+  // check alignment
+  asmjit::Label aligned = cdat.cc.new_label();
+  cdat.cc.mov(cdat.tmp2, cdat.tmp1);
+  cdat.cc.and_(cdat.tmp2, static_cast<Word>((1 << 2) - 1));
+  cdat.cc.cmp(cdat.tmp2, 0);
+  cdat.cc.je(aligned);
+  cdat.cc.mov(cdat.tmp1, kMemoryMisalignedAddr);
+  cdat.cc.ret(cdat.tmp1);
   
-  cdat.cc.mov(cdat.tmp3, asmjit::x86::dword_ptr(cdat.tmp2));
+  cdat.cc.bind(aligned);
+  cdat.cc.lea(cdat.ram_addr, ram_base_to_dword_ptr());
+  cdat.cc.add(cdat.ram_addr, cdat.tmp1.r64());
+  cdat.cc.mov(cdat.tmp3, asmjit::x86::dword_ptr(cdat.ram_addr));
   cdat.cc.mov(reg_to_dword_ptr(inst.f1), cdat.tmp3);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
@@ -252,11 +313,8 @@ void JitExecutor::translate_ld(const Instr& inst,
 void JitExecutor::translate_cbit(const Instr& inst,
                                  const JitCompilerData& cdat)
 {
-  cdat.cc.mov(cdat.tmp1, 1 << inst.f3); // mask
-  cdat.cc.mov(cdat.tmp2, inst.f2);
-
-  cdat.cc.and_(cdat.tmp1, cdat.tmp2); // clr bit
-
+  cdat.cc.mov(cdat.tmp1, inst.f2);
+  cdat.cc.and_(cdat.tmp1, ~(Word{1} << inst.f3)); // clr bit
   cdat.cc.mov(reg_to_dword_ptr(inst.f1), cdat.tmp1);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
@@ -270,10 +328,11 @@ void JitExecutor::translate_j(const Instr& inst,
   cdat.cc.add(cdat.tmp1, cdat.pc_inc);
 
   cdat.cc.and_(cdat.tmp1, 0xf0000000);
-  cdat.cc.or_(cdat.tmp1, inst.f3);
+  cdat.cc.or_(cdat.tmp1, inst.f3 << 2);
 
   cdat.cc.mov(pc_to_dword_ptr(), cdat.tmp1);
-  cdat.cc.ret();
+  cdat.cc.mov(cdat.tmp1, kExitSuccess);
+  cdat.cc.ret(cdat.tmp1);
 }
 
 void JitExecutor::translate_addi(const Instr& inst,
@@ -297,9 +356,8 @@ void JitExecutor::translate_jalr(const Instr& inst,
   cdat.cc.mov(cdat.tmp1, pc_to_dword_ptr());
   cdat.cc.add(cdat.tmp1, cdat.pc_inc);
 
-  cdat.cc.mov(cdat.tmp2, cdat.tmp2);
+  cdat.cc.mov(cdat.tmp2, cdat.tmp1);
   cdat.cc.add(cdat.tmp2, sizeof(Word)); // link
-  cdat.cc.mov(pc_to_dword_ptr(), cdat.tmp2);
 
   Word imm = sgn_extend(
     inst.f3,
@@ -309,8 +367,10 @@ void JitExecutor::translate_jalr(const Instr& inst,
   cdat.cc.add(cdat.tmp1, imm);
   cdat.cc.and_(cdat.tmp1, 0xfffffffe);
   cdat.cc.mov(pc_to_dword_ptr(), cdat.tmp1);
+  cdat.cc.mov(reg_to_dword_ptr(inst.f1), cdat.tmp2);
 
-  cdat.cc.ret();
+  cdat.cc.mov(cdat.tmp1, kExitSuccess);
+  cdat.cc.ret(cdat.tmp1);
 }
 
 void JitExecutor::translate_st(const Instr& inst,
@@ -322,13 +382,21 @@ void JitExecutor::translate_st(const Instr& inst,
 
   cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f2));
   cdat.cc.add(cdat.tmp1, ofst); // base + offst
-  cdat.cc.mov(cdat.tmp2, mem_to_dword_ptr()); // mem start
-  cdat.cc.add(cdat.tmp2, cdat.tmp1); // addr
 
-  // FIXME raise exception
+  // check alignment
+  asmjit::Label aligned = cdat.cc.new_label();
+  cdat.cc.mov(cdat.tmp2, cdat.tmp1);
+  cdat.cc.and_(cdat.tmp2, (1 << 2) - 1); 
+  cdat.cc.cmp(cdat.tmp2, 0);
+  cdat.cc.je(aligned);
+  cdat.cc.mov(cdat.tmp1, kMemoryMisalignedAddr);
+  cdat.cc.ret(cdat.tmp1);
   
-  cdat.cc.mov(cdat.tmp3, reg_to_dword_ptr(inst.f1));
-  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.tmp2), cdat.tmp3);
+  cdat.cc.bind(aligned);
+  cdat.cc.lea(cdat.ram_addr, ram_base_to_dword_ptr());
+  cdat.cc.add(cdat.ram_addr, cdat.tmp1.r64());
+  cdat.cc.mov(cdat.tmp2, reg_to_dword_ptr(inst.f1));
+  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.ram_addr), cdat.tmp2);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
 }
@@ -342,16 +410,24 @@ void JitExecutor::translate_stp(const Instr& inst,
 
   cdat.cc.mov(cdat.tmp1, reg_to_dword_ptr(inst.f3));
   cdat.cc.add(cdat.tmp1, ofst); // base + offst
-  cdat.cc.mov(cdat.tmp2, mem_to_dword_ptr()); // mem start
-  cdat.cc.add(cdat.tmp2, cdat.tmp1); // addr
   
-  // FIXME raise exception
+  // check alignment
+  asmjit::Label aligned = cdat.cc.new_label();
+  cdat.cc.mov(cdat.tmp2, cdat.tmp1);
+  cdat.cc.and_(cdat.tmp2, static_cast<Word>((1 << 2) - 1)); 
+  cdat.cc.cmp(cdat.tmp2, 0);
+  cdat.cc.je(aligned);
+  cdat.cc.mov(cdat.tmp1, kMemoryMisalignedAddr);
+  cdat.cc.ret(cdat.tmp1);
 
+  cdat.cc.bind(aligned);
+  cdat.cc.lea(cdat.ram_addr, ram_base_to_dword_ptr()); 
+  cdat.cc.add(cdat.ram_addr, cdat.tmp1.r64());
   cdat.cc.mov(cdat.tmp3, reg_to_dword_ptr(inst.f1));
-  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.tmp2), cdat.tmp3);
-  cdat.cc.add(cdat.tmp2, sizeof(Word));
+  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.ram_addr), cdat.tmp3);
   cdat.cc.mov(cdat.tmp3, reg_to_dword_ptr(inst.f2));
-  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.tmp2), cdat.tmp3);
+  cdat.cc.mov(asmjit::x86::dword_ptr(cdat.ram_addr, sizeof(Word)),
+              cdat.tmp3);
 
   cdat.cc.add(cdat.pc_inc, sizeof(Word));
 }

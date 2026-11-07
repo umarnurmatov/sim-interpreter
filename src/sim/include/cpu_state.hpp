@@ -15,13 +15,13 @@ public:
 
   void set_reg(std::size_t reg, Reg val) 
   {
-    assert(reg < Isa::kInstrCnt);
+    assert(reg < Isa::kNumRegs);
     m_gpr[reg] = val; 
   }
 
   const Reg& get_reg(std::size_t reg) 
   { 
-    assert(reg < Isa::kInstrCnt); 
+    assert(reg < Isa::kNumRegs); 
     return m_gpr[reg]; 
   }
 
@@ -39,12 +39,6 @@ private:
   Reg    m_gpr[Isa::kNumRegs];
   Reg    m_pc;
   Memory m_mem;
-};
-
-struct SyscallTrap
-{
-  Reg num;
-  std::array<Reg, Isa::kSyscallArgCnt> args;
 };
 
 

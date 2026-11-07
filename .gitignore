@@ -72,3 +72,5 @@ log/
 
 # compile commands
 compile_commands.json
+
+AGENTS.md

@@ -4,6 +4,7 @@
 #include <cxxopts.hpp>
 
 #include "base_executor.hpp"
+#include "jit_executor.hpp"
 #include "thread_executor.hpp"
 #include "interp_executor.hpp"
 #include "loader.hpp"
@@ -36,8 +37,10 @@ int main(int argc, char* argv[])
       executor = new InterpExecutor{ InterpExecutor::kCached };
     else if (mode == "thread")
       executor = new ThreadExecutor{ };
+    else if (mode == "jit")
+      executor = new JitExecutor{ };
     else {
-      std::cerr << "mode = <int, int-cached, thread>" << std::endl;
+      std::cerr << "mode = <int, int-cached, thread, jit>" << std::endl;
       return EXIT_FAILURE;
     }
     

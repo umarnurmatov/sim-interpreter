@@ -34,6 +34,8 @@ public:
     std::memcpy(m_ram.data() + addr, bytes, sizeof(char) * size);
   }
 
+  const std::uint8_t* get_data() const { return m_ram.data(); }
+
 private:
   template <MemoryType T>
   void check_bounds(std::size_t addr) const 

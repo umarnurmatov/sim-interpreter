@@ -2,6 +2,8 @@ set(SRCS
   src/base_executor.cpp
   src/bitops.cpp
   src/instr.cpp
+  src/syscall.cpp
+  src/base_interp_executor.cpp
   src/interp_executor.cpp
   src/thread_executor.cpp
   src/jit_executor.cpp

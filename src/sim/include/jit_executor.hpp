@@ -17,20 +17,30 @@ public:
   int run() override;
 
 private:
-  using JitBlk = void (*)(void);
+  enum BlkExitCode : int {
+    kExitSuccess,
+    kSyscall,
+    kMemoryMisalignedAddr
+  };
+
+  using JitBlk = BlkExitCode (*)(void);
 
   struct JitCompilerData {
     JitCompilerData(asmjit::x86::Compiler& cc_);
 
+    // call after function attached to cc
+    void init();
+
     asmjit::x86::Compiler& cc;
 
-    // FIXME rename tmp to rd, rs, ...
     asmjit::x86::Gp tmp1;
     asmjit::x86::Gp tmp2;
     asmjit::x86::Gp tmp3;
 
     // for PC folding optimization
     asmjit::x86::Gp pc_inc; 
+
+    asmjit::x86::Gp ram_addr;
   };
 
   struct BasicBlk {
@@ -38,19 +48,21 @@ private:
     std::size_t exec_cnt;
   };
 
+  void handle_blk_on_exit(BlkExitCode blk_exit_code);
+
   JitBlk translate(const BasicBlk& blk);
 
   void translate_instr(const Instr& inst,
                        const JitCompilerData& cdat);
 
   __attribute__((always_inline)) 
-  asmjit::x86::Mem reg_to_dword_ptr(std::size_t reg);
+  inline asmjit::x86::Mem reg_to_dword_ptr(std::size_t reg);
 
   __attribute__((always_inline)) 
-  asmjit::x86::Mem pc_to_dword_ptr();
+  inline asmjit::x86::Mem pc_to_dword_ptr();
 
   __attribute__((always_inline)) 
-  asmjit::x86::Mem mem_to_dword_ptr();
+  inline asmjit::x86::Mem ram_base_to_dword_ptr();
 
 
 #define DECLARE_TRANSLATE_FUNC_(cmd)                \

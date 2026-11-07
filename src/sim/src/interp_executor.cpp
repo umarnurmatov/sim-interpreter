@@ -1,9 +1,10 @@
 #include "interp_executor.hpp"
+#include "syscall.hpp"
 
 int InterpExecutor::run()
 {  
   bool halted = false;
-  int exit_code = 1;
+  int exit_code = 0;
 
   while (!halted) {
     try {
@@ -26,14 +27,9 @@ int InterpExecutor::run()
       }
     }
     catch (const SyscallTrap &trap) {
-      switch (trap.num) {
-        case Isa::kSyscallExit:
-          exit_code = trap.args[0];
-          halted = true;
-          break;
-        default:
-          throw std::runtime_error("interpreter: unknown syscall");
-      }
+      SyscallRet ret = handle_syscall(trap);
+      halted = ret.halted;
+      exit_code = ret.exit_code;
     }
   }
 

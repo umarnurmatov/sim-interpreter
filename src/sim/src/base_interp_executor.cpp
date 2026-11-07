@@ -1,6 +1,7 @@
 #include "base_interp_executor.hpp"
 
 #include "bitops.hpp"
+#include "syscall.hpp"
 
 #define OPC_TO_INT(opc) \
   (static_cast<std::uint8_t>(opc))
@@ -189,12 +190,11 @@ void BaseInterpExecutor::exec_st(Instr inst)
 
 void BaseInterpExecutor::exec_stp(Instr inst)
 {
-  auto f4_width = kInstrEnc[OPC_TO_INT(Opcode::kStp)].f4.width;
+  Word base = inst.f3;
+  Word ofst = inst.f4;
 
-  Word base = inst.f3 >> f4_width;
-  Word ofst = inst.f3 & ((1u << f4_width) - 1);
-
-  Word ofst_ext = sgn_extend(ofst, f4_width);
+  Word ofst_ext = sgn_extend(ofst, 
+                             kInstrEnc[OPC_TO_INT(Opcode::kStp)].f4.width);
 
   Word addr = m_cpu->get_reg(base) + static_cast<Word>(ofst_ext);
 

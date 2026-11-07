@@ -1,3 +1,5 @@
+#pragma once
+
 #include "base_executor.hpp"
 
 #define DECLARE_EXEC_FUNC_(cmd) void exec_##cmd(Instr inst)
