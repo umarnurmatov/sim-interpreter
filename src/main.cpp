@@ -11,14 +11,15 @@
 
 int main(int argc, char* argv[])
 {
-  cxxopts::Options opts("toy-asm interpreter, copyright (c) n1njaeng1neer");
+  cxxopts::Options opts("toy-asm interpreter");
 
   BaseExecutor* executor;
 
   opts.add_options()
-    ("input",  "input file", cxxopts::value<std::string>())
-    ("m,mode", "mode",       cxxopts::value<std::string>())
-    ("h,help", "help"                                     );
+    ("input",  "input file",     cxxopts::value<std::string>()  )
+    ("m,mode", "execution mode", cxxopts::value<std::string>()
+                                   ->default_value("int-cached"))
+    ("h,help", "print help"                                     );
   opts.parse_positional({ "input" });
 
   auto opts_parsed = opts.parse(argc, argv);

@@ -56,7 +56,9 @@ enum Registers : Byte
 
 enum SyscallCodes : Reg 
 {
-  kSyscallExit = 0x5d
+  kSyscallRead  = 0x00,
+  kSyscallWrite = 0x01,
+  kSyscallExit  = 0x5d
 };
 
 } // namespace Isa

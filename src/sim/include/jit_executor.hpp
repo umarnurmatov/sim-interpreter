@@ -1,12 +1,37 @@
 #pragma once
 
 #include <unordered_map>
+#include <fstream>
+#include <vector>
 
 #include <asmjit/x86.h>
 
 #include "base_interp_executor.hpp"
 
-constexpr std::size_t kThresholdDefault = 10;
+constexpr std::size_t kThresholdDefault = 0;
+
+class AsmJitException : public std::exception {
+public:
+  asmjit::Error err;
+  std::string message;
+ 
+  AsmJitException(asmjit::Error err, const char* message) noexcept
+    : err(err),
+      message(message) {}
+ 
+  const char* what() const noexcept override { 
+    return message.c_str(); 
+  }
+};
+ 
+class AsmjitErrorHandler : public asmjit::ErrorHandler {
+public:
+  void handle_error(asmjit::Error err, 
+                    const char* message, 
+                    asmjit::BaseEmitter* origin) override {
+    throw AsmJitException(err, message);
+  }
+};
 
 class JitExecutor : public BaseInterpExecutor
 {
@@ -29,7 +54,7 @@ private:
     JitCompilerData(asmjit::x86::Compiler& cc_);
 
     // call after function attached to cc
-    void init();
+    void init(CpuState* cpu);
 
     asmjit::x86::Compiler& cc;
 
@@ -40,7 +65,9 @@ private:
     // for PC folding optimization
     asmjit::x86::Gp pc_inc; 
 
-    asmjit::x86::Gp ram_addr;
+    asmjit::x86::Gp ram_base_addr;
+    asmjit::x86::Gp pc_addr;
+    asmjit::x86::Gp reg_file_addr;
   };
 
   struct BasicBlk {
@@ -54,16 +81,6 @@ private:
 
   void translate_instr(const Instr& inst,
                        const JitCompilerData& cdat);
-
-  __attribute__((always_inline)) 
-  inline asmjit::x86::Mem reg_to_dword_ptr(std::size_t reg);
-
-  __attribute__((always_inline)) 
-  inline asmjit::x86::Mem pc_to_dword_ptr();
-
-  __attribute__((always_inline)) 
-  inline asmjit::x86::Mem ram_base_to_dword_ptr();
-
 
 #define DECLARE_TRANSLATE_FUNC_(cmd)                \
   void translate_##cmd(const Instr& inst,           \
@@ -95,6 +112,8 @@ private:
   Reg prefetch_basic_block(BasicBlk& blk);
 
   asmjit::JitRuntime m_runtime;
+
+  AsmjitErrorHandler m_err_handler;
 
   std::unordered_map<Reg, JitBlk>   m_bt_cache;
   std::unordered_map<Reg, BasicBlk> m_bb_cache;

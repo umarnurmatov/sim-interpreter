@@ -25,7 +25,7 @@ int Loader::load_elf(BaseExecutor *exec, std::string filename)
     const ELFIO::segment* seg = reader.segments[i];
     seg->get_flags();
 
-    if (seg->get_type() | ELFIO::PT_LOAD) {
+    if (seg->get_type() == ELFIO::PT_LOAD) {
       exec->load_bytes(seg->get_physical_address(), 
                        seg->get_data(), 
                        seg->get_memory_size());

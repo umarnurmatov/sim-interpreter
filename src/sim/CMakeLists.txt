@@ -17,6 +17,9 @@ target_include_directories(sim_static
   PUBLIC include
 )
 
+target_compile_definitions(sim_static
+  PUBLIC LOG_FILE=${CMAKE_CURRENT_BINARY_DIR}/sim.log)
+
 target_link_libraries(sim_static 
   PUBLIC 
     sim_flags
